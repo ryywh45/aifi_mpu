@@ -14,6 +14,7 @@ sudo apt full-upgrade
 
 ### 下載 mediamtx 並解壓縮到`~/mediamtx_v1.8.2`
 ```
+cd ~
 curl -L -o https://github.com/bluenviron/mediamtx/releases/download/v1.8.2/mediamtx_v1.8.2_linux_arm64v8.tar.gz
 mkdir -p mediamtx_v1.8.2
 tar -zxvf mediamtx_v1.8.2_linux_arm64v8.tar.gz -C mediamtx_v1.8.2
@@ -21,7 +22,7 @@ tar -zxvf mediamtx_v1.8.2_linux_arm64v8.tar.gz -C mediamtx_v1.8.2
 
 ### Clone這個專案並把設定檔放到`~/mediamtx_v1.8.2`
 ```
-cd
+cd ~
 git clone https://github.com/ryywh45/aifi_mpu.git
 cp aifi_mpu/tools/picam_stream/config.yml ~/mediamtx_v1.8.2
 ```
