@@ -15,16 +15,23 @@ sudo apt full-upgrade
 ### 下載 mediamtx 並解壓縮到`~/mediamtx_v1.8.2`
 ```
 cd ~
-curl -L -o https://github.com/bluenviron/mediamtx/releases/download/v1.8.2/mediamtx_v1.8.2_linux_arm64v8.tar.gz
+curl -L -o mediamtx_v1.8.2.tar.gz https://github.com/bluenviron/mediamtx/releases/download/v1.8.2/mediamtx_v1.8.2_linux_arm64v8.tar.gz
 mkdir -p mediamtx_v1.8.2
-tar -zxvf mediamtx_v1.8.2_linux_arm64v8.tar.gz -C mediamtx_v1.8.2
+tar -zxvf mediamtx_v1.8.2.tar.gz -C mediamtx_v1.8.2
+rm mediamtx_v1.8.2.tar.gz
 ```
 
-### Clone這個專案並把設定檔放到`~/mediamtx_v1.8.2`
+### 把設定檔放到`~/mediamtx_v1.8.2`
+有clone過的就不用重新clone了
 ```
 cd ~
 git clone https://github.com/ryywh45/aifi_mpu.git
-cp aifi_mpu/tools/picam_stream/config.yml ~/mediamtx_v1.8.2
+```
+```
+cd ~/mediamtx_v1.8.2
+cp ~/aifi_mpu/tools/picam_stream/config.yml .
+awk '/paths:/{flag=1; print; next} flag{next} 1' mediamtx.yml > temp.yml && mv temp.yml mediamtx.yml
+cat config.yml >> mediamtx.yml
 ```
 
 ## 開始串流
@@ -54,8 +61,7 @@ cd ~/mediamtx_v1.8.2
 
 ### Open the config file
 ```
-cd ~/mediamtx_v1.8.2
-nano config.yml
+nano ~/mediamtx_v1.8.2/config.yml
 ```
 
 ### Reload config and restart `mediamtx`
