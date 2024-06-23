@@ -60,6 +60,6 @@
 範圍在0~255，長度固定為8
 - 資料格式：bytes
 ```
-bytes([ord('!'), 8, data2, data3, data4, checksum, checksum, ord('\n')])
+bytes([ord('!'), 8, data1, data2, data3, data4, checksum, checksum])
 ```
 例如data1=1為控制游動，data1=2為控制led等
