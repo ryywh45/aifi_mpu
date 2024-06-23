@@ -1,15 +1,19 @@
 import asyncio
 import websockets.client as websockets
 
+from communication.message import ClientToServer as WebsocketMsg
+NAME = 'template.py'
+
 from your_code import your_function
+
 
 async def main():
     async with websockets.connect("ws://localhost:8000") as ws:
-        await ws.send('[ template.py ] : Hello')
+        await ws.send(WebsocketMsg(NAME, 'Hello').to_json())
         try:
             return_value = your_function()
-            print(f'To server -> [ template.py ] : {return_value}')
-            await ws.send(f'[ template.py ] : {return_value}')
+            print(f'To server -> {WebsocketMsg(NAME, return_value).show()}')
+            await ws.send(WebsocketMsg(NAME, return_value).to_json())
             response = await ws.recv()
             print(f"From server <- {response}")
 
