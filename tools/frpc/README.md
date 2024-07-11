@@ -1,7 +1,7 @@
 ## 使用方法
-0. 先ssh進你的裝置
+### 0. 先ssh進你的裝置
 
-1. clone專案到HOME目錄然後cd進去 
+### 1. clone專案到HOME目錄然後cd進去 
 
 如果clone過就cd進去就好
 ```
@@ -10,7 +10,7 @@ git clone https://github.com/ryywh45/aifi_mpu.git
 cd aifi_mpu/tools/frpc
 ```
 
-2. 設定名稱 
+### 2. 設定名稱 
 打開frpc.ini，修改`[ssh]`的部分(第五行)
 ```
 nano ./frpc.ini
@@ -21,17 +21,17 @@ nano ./frpc.ini
 
 如果是其他的，修改為`[ssh-這邊名字隨便你取]`
 
-3. 給檔案執行權限
+### 3. 給檔案執行權限
 ```
 sudo chmod +x frpc init.sh run.sh
 ```
 
-4. 初始化並啟動  
+### 4. 初始化並啟動  
 ```
 ./init.sh
 ```
 
-5. 查看結果
+### 5. 查看結果
 
 前往以下網址，看看剛剛設定的名稱有沒有出現在上面
 
