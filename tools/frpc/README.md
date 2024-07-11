@@ -8,7 +8,7 @@ git clone https://github.com/ryywh45/aifi_mpu.git
 cd aifi_mpu/tools/frpc
 ```
 2. 設定名稱 
-打開frpc.ini，修改`[ssh]`的部分(第四行)
+打開frpc.ini，修改`[ssh]`的部分(第五行)
 ```
 nano ./frpc.ini
 ```
