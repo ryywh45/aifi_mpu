@@ -2,6 +2,7 @@
 0. 先ssh進你的裝置
 
 1. clone專案到HOME目錄然後cd進去 
+
 如果clone過就cd進去就好
 ```
 cd ~
