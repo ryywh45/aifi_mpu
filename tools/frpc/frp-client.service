@@ -1,0 +1,11 @@
+[Unit]
+Description=frp client
+After=network.target
+
+[Service]
+Restart=always
+RestartSec=30s
+ExecStart=%h/aifi_mpu/tools/frpc/run.sh
+
+[Install]
+WantedBy=default.target
