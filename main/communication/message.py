@@ -4,7 +4,7 @@ from dataclasses import dataclass, asdict, field
 from typing import Union, Dict, Any
 import json
 
-PREFIX = '!'
+PREFIX = b'!'
 LENGTH = 8
 DATA_LENGTH = LENGTH - 4
 
