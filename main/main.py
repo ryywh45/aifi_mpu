@@ -22,12 +22,13 @@ class CommunicaionBridge:
 
     async def ws_handler(self, ws: websockets.WebSocketServerProtocol):
         """deal with incoming messages from webSocket"""
+        service_name = ''
         try:
-            async for data in ws:
+            async for message in ws:
                 try:
-                    data = json.loads(data)
-                    service_name = data['service']
-                    service_data = data['data']
+                    message = json.loads(message)
+                    service_name = message['service']
+                    service_data = message['data']
                 except Exception:
                     print('Invalid data from webSocket')
                     continue
@@ -45,18 +46,23 @@ class CommunicaionBridge:
         except Exception as e:
             print(f"Error in [ wsHandler() ] : {e}")
         finally:
+            await ws.close()
             if service_name in self.wsConnections:
                 del self.wsConnections[service_name]
+                print(f'[ {service_name} ] disconnected')
 
     async def ws_send(self, service_name: str, msg: WebsocketMsg):
         """send data to webSocket"""
         try:
             print(f"To {service_name} -> {msg.show()}")
             await self.wsConnections[service_name].send(msg.to_json())
+            return True
         except KeyError:
             print(f"Error in [ ws_send() ] : {service_name} not connected")
+            return False
         except Exception as e:
             print(f"Error in [ ws_send() ] : {e}")
+            return False
 
     async def serial_write(self, msg: SerialMsg):
         """process data and send it to serial"""

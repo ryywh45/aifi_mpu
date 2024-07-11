@@ -7,7 +7,7 @@ Behavior:
   - Record at fixed intervals.
 """
 
-import asyncio
+import asyncio, json, os
 import websockets.client as websockets
 from time import time
 from datetime import datetime as dt
@@ -22,6 +22,7 @@ NAME = "picam_record.py"
 # ================================================================#
 
 VIDEO_DURATION = 60  # seconds
+MAX_VIDEO_COUNT = 100
 started = False
 stopped = True
 
@@ -67,6 +68,7 @@ async def record_loop():
                 encoding = True
                 start_time = time()
                 print(f"Saving video: {encoder.output.output_filename}")
+                check_video_count()
 
             elif encoding and time() - start_time > VIDEO_DURATION:
                 # Save video if duration is reached
@@ -88,32 +90,52 @@ async def record_loop():
 # =================================================================#
 
 
+def check_video_count(should_delete=True):
+    videos = [f for f in os.listdir("./videos/") if f.endswith(".mp4")]
+    if len(videos) > MAX_VIDEO_COUNT and should_delete:
+        print(f"Max video count reached ({MAX_VIDEO_COUNT}). Deleting oldest video...")
+        delete_oldest_video(videos)
+    return len(videos)
+
+def delete_oldest_video(videos_name: list):
+    oldest_video = min(['./videos/' + name for name in videos_name], key=os.path.getatime)
+    os.remove(f"{oldest_video}")
+    print(f"Deleted video: {oldest_video}")
+
 async def main():
     global started, stopped
     async with websockets.connect("ws://localhost:8000") as ws:
         await ws.send(WebsocketMsg(NAME, "Hello").to_json())
-
+        print(f"Connected to server")
+        print(f"Video duration: {VIDEO_DURATION} sec")
+        print(f"Max video count: {MAX_VIDEO_COUNT}")
+        print(f"Current video count: {check_video_count(False)}")
+        
         try:
             async for message in ws:
+                try:
+                    message = json.loads(message)
+                    status = message['status']
+                    data = message['data']
+                except Exception:
+                    print('Invalid data from webSocket')
+                    continue
                 print(f"From server <- {message}")
 
-                if message == "go" and stopped:
+                if data == "go" and stopped:
                     stopped = False
-                    print(
-                        f'To server -> {WebsocketMsg(NAME, 'Starting recording').show()}'
-                    )
+                    print(f'To server -> {WebsocketMsg(NAME, "Starting recording").show()}')
                     await ws.send(WebsocketMsg(NAME, "Starting recording").to_json())
                     asyncio.create_task(record_loop())
 
-                elif message == "stop" and started:
+                elif data == "stop" and started:
                     started = False
-                    print(
-                        f'To server -> {WebsocketMsg(NAME, 'Stopping recording').show()}'
-                    )
+                    print(f'To server -> {WebsocketMsg(NAME, "Stopping recording").show()}')
                     await ws.send(WebsocketMsg(NAME, "Stopping recording").to_json())
 
         except Exception as e:
             print(f"Error in [ main() ] : {e}")
+    print('Connection closed.')
 
 
 if __name__ == "__main__":

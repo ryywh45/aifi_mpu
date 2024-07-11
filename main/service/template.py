@@ -19,6 +19,7 @@ async def main():
 
         except Exception as e:
             print(f"Error in [ main() ]: {e}")
+    print('Connection closed.')
 
 
 if __name__ == '__main__':
