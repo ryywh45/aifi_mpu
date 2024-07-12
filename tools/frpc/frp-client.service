@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Restart=always
 RestartSec=30s
-ExecStart=%h/aifi_mpu/tools/frpc/run.sh
+ExecStart=$HOME/aifi_mpu/tools/frpc/run.sh
 
 [Install]
 WantedBy=default.target
