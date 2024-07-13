@@ -4,10 +4,10 @@
 |--main
 |    |--main.py                // serial-websocket bridge
 |    |--serial                   
-|    |  |--serialHandler.py    // handles imcoming serial data 
+|    |  |--serialHandler.py    // handles incoming serial data 
 |    |  └--
 |    |--service                // service is a websocket client on MPU
-|    |  |--serviceHandler.py   // handles imcoming service data
+|    |  |--serviceHandler.py   // handles incoming service data
 |    |  |--template.py         // template for new service
 |    |  |--picam_record        
 |    |  |  |--picam_record.py  // picam recording service
@@ -19,12 +19,11 @@
 |    └--
 |--tools
 |    |--picam_stream           // push stream to rtsp server
-|    |  |--config.yml
-|    |  |--config-sample.yml
-|    |  └--README.md
-|    |--frpc                   // frp client
-|    |  └--
-|    └--
+|    |  └-- ...
+|    |--frpc                   // frp client setup guide
+|    |  └-- ...
+|    └--fish-eyes              // get video/picture that inside fish
+|    |  └-- ...
 └--docs
 |    └--
 ```
