@@ -1,16 +1,25 @@
 ## 使用方法
 ### 0. 先ssh進你的裝置
 
-### 1. clone專案到HOME目錄然後cd進去 
+### 1. clone專案到HOME目錄 
 
-如果clone過就cd進去就好
+如果clone過就跳過這步
 ```
 cd ~
 git clone https://github.com/ryywh45/aifi_mpu.git
-cd aifi_mpu/tools/frpc
 ```
 
-### 2. 調整設定 
+### 2. 新增資料夾放設定檔
+
+為了避免你之後pull新程式碼的時候衝突
+```
+mkdir frp-client
+rsync -av --exclude='aifi_mpu/tools/frpc/frpc' aifi_mpu/tools/frpc/ "frp-client/"
+cd frp-client
+```
+
+### 3. 調整設定
+
 打開frpc.ini，修改`[ssh]`的部分(第五行)
 ```
 nano ./frpc.ini
@@ -28,17 +37,17 @@ server_port = 0
 ```
 這兩個參數請找我要，沒有的話不能動
 
-### 3. 給檔案執行權限
+### 4. 給檔案執行權限
 ```
-sudo chmod +x frpc init.sh run.sh
+sudo chmod +x ~/aifi_mpu/tools/frpc/frpc init.sh run.sh
 ```
 
-### 4. 初始化並啟動  
+### 5. 初始化並啟動  
 ```
 ./init.sh
 ```
 
-### 5. 查看結果
+### 6. 查看結果
 
 前往以下網址，看看剛剛設定的名稱有沒有出現在上面
 
