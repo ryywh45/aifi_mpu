@@ -15,14 +15,14 @@ async def send_loop(ws) -> int:
         while True:
             userinput = await loop.run_in_executor(
                 None,
-                lambda: input("Command:\n1) Send to serial\n2) Start recording\n3) Stop recording\n4) Exit\n> "))
+                lambda: input("Command:\n1) Send to serial\n2) Start recording\n3) Stop recording\n4) Take a picture\n5) Exit\n> "))
             try:
                 userinput = int(userinput)
             except ValueError:
                 print("\033[31mInvalid input, please enter an integer value\n\033[0m")
                 continue
 
-            if userinput == 4:
+            if userinput == 5:
                 return
             elif userinput == 1:
                 while True:
@@ -40,6 +40,8 @@ async def send_loop(ws) -> int:
                 await ws.send(WebsocketMsg(NAME, 'startRecording').to_json())
             elif userinput == 3:
                 await ws.send(WebsocketMsg(NAME,'stopRecording').to_json())
+            elif userinput == 4:
+                await ws.send(WebsocketMsg(NAME,'take-a-pic').to_json())
             else:
                 print("\033[31mInvalid input, fk u\n\033[0m")
                 continue

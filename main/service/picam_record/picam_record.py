@@ -29,20 +29,24 @@ stopped = True
 
 def picam_init():
     picam2 = Picamera2()
-    picam2.configure(
-        picam2.create_video_configuration(
-            main={"size": (1280, 720), "format": "RGB888"},
-            lores={"size": (320, 240), "format": "YUV420"},
-            display="lores",
-            encode="lores",
-        )
-    )
+    vidConf = picam2.create_video_configuration(
+                  main={"size": (1280, 720), "format": "RGB888"},
+                  lores={"size": (320, 240), "format": "YUV420"},
+                  display="lores",
+                  encode="lores",
+              )
+    picConf = picam2.create_still_configuration(
+                  main={"size": (1280, 720), "format": "RGB888"},
+                  lores={"size": (320, 240), "format": "YUV420"},
+                  display="main",
+              )
+    picam2.configure(vidConf)
     encoder = H264Encoder(
         bitrate=None,
         framerate=30,
     )
     encoder.output = FfmpegOutput("./videos/temp.mp4")
-    return picam2, encoder
+    return picam2, encoder, vidConf, picConf
 
 
 # ================================================================#
@@ -54,6 +58,7 @@ async def record_loop():
 
     picam2.start_encoder(encoder)
     picam2.start()
+    picam2.switch_mode(vidConf)
     started = True
     start_time = time()
 
@@ -85,6 +90,11 @@ async def record_loop():
         picam2.stop_encoder()
         stopped = True
         print(f"Recording stopped")
+
+async def cap_picture():
+    picam2.start()
+    picam2.switch_mode_and_capture_file(picConf, f"./pictures/{dt.now().strftime('%Y%m%d_%H:%M:%S')}.png")
+    picam2.stop()
 
 
 # =================================================================#
@@ -133,11 +143,17 @@ async def main():
                     print(f'To server -> {WebsocketMsg(NAME, "Stopping recording").show()}')
                     await ws.send(WebsocketMsg(NAME, "Stopping recording").to_json())
 
+                if data == "take-a-pic" and stopped:
+                    stopped = False
+                    print(f'To server -> {WebsocketMsg(NAME, "Taking a picture").show()}')
+                    await ws.send(WebsocketMsg(NAME, "Taking a picture").to_json())
+                    asyncio.create_task(cap_picture())
+
         except Exception as e:
             print(f"Error in [ main() ] : {e}")
     print('Connection closed.')
 
 
 if __name__ == "__main__":
-    picam2, encoder = picam_init()
+    picam2, encoder, vidConf, picConf = picam_init()
     asyncio.run(main())
