@@ -14,8 +14,9 @@ git clone https://github.com/ryywh45/aifi_mpu.git
 為了避免你之後pull新程式碼的時候衝突
 ```
 mkdir frp-client
-rsync -av --exclude='aifi_mpu/tools/frpc/frpc' aifi_mpu/tools/frpc/ "frp-client/"
-cd frp-client
+cd aifi_mpu/tools/frpc
+cp frp-client.service init.sh run.sh frpc.ini ~/frp-client/
+cd ~/frp-client
 ```
 
 ### 3. 調整設定
