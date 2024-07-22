@@ -92,9 +92,13 @@ async def record_loop():
         print(f"Recording stopped")
 
 async def cap_picture():
+    global stopped
     picam2.start()
-    picam2.switch_mode_and_capture_file(picConf, f"./pictures/{dt.now().strftime('%Y%m%d_%H:%M:%S')}.png")
+    filename = f"./pictures/{dt.now().strftime('%Y%m%d_%H:%M:%S')}.png"
+    picam2.switch_mode_and_capture_file(picConf, filename)
+    print(f'Picture saved: {filename}')
     picam2.stop()
+    stopped = True
 
 
 # =================================================================#
@@ -143,7 +147,7 @@ async def main():
                     print(f'To server -> {WebsocketMsg(NAME, "Stopping recording").show()}')
                     await ws.send(WebsocketMsg(NAME, "Stopping recording").to_json())
 
-                if data == "take-a-pic" and stopped:
+                elif data == "take-a-pic" and stopped:
                     stopped = False
                     print(f'To server -> {WebsocketMsg(NAME, "Taking a picture").show()}')
                     await ws.send(WebsocketMsg(NAME, "Taking a picture").to_json())
