@@ -35,5 +35,5 @@ func init() {
 	lsCmd.Flags().BoolVarP(&vidOnly, "vid-only", "v", false, "only list videos")
 	lsCmd.Flags().BoolVarP(&picOnly, "pic-only", "p", false, "only list pictures")
 	lsCmd.MarkFlagsMutuallyExclusive("vid-only", "pic-only")
-	lsCmd.Flags().StringVarP(&username, "username", "n", "aifi-fish", "change username")
+	lsCmd.Flags().StringVar(&username, "username", "aifi-fish", "change username")
 }

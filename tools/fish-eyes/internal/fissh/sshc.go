@@ -5,9 +5,9 @@ import (
 	"net"
 	"log"
 	"os"
-	"runtime"
-	"path/filepath"
+	"io"
 
+	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 )
@@ -15,7 +15,7 @@ import (
 var hostname string
 var username string = "aifi-fish"
 
-func Connect(port string) (*ssh.Client, error) {
+func connect(port string) (*ssh.Client, error) {
 	askHostname()
 	config := &ssh.ClientConfig{
 		User: username,
@@ -29,14 +29,6 @@ func Connect(port string) (*ssh.Client, error) {
 
 	agentClient := agent.NewClient(conn)
 	config.Auth = []ssh.AuthMethod{ ssh.PublicKeysCallback(agentClient.Signers) }
-
-	// signer, err := loadPrivateKey()
-	// if err != nil {	
-	// 	fmt.Println(err)
-	// 	config.Auth = []ssh.AuthMethod{ ssh.Password(askPassword()) }
-	// } else {
-	// 	config.Auth = []ssh.AuthMethod{ ssh.PublicKeys(signer) }	
-	// }
 
 	addr := hostname + ":" + port
 	client, err := ssh.Dial("tcp", addr, config)
@@ -53,6 +45,8 @@ func Connect(port string) (*ssh.Client, error) {
 
 func ChangeUsername(name string) {
 	username = name
+	vidPath = "/home/" + username + "/aifi_mpu/main/service/picam_record/videos"
+	picPath = "/home/" + username + "/aifi_mpu/main/service/picam_record/pictures"
 }
 
 func askHostname() {
@@ -73,29 +67,29 @@ func askPassword() string {
 	return password
 }
 
-func checkPrivateKeyPath() string {
-	privateKeyPath := ""
-    switch runtime.GOOS {
-    case "windows":
-        privateKeyPath = filepath.Join(os.Getenv("USERPROFILE"), ".ssh", "id_rsa")
-    case "linux", "darwin":
-        privateKeyPath = filepath.Join(os.Getenv("HOME"), ".ssh", "id_rsa")
-    }
-	return privateKeyPath
-}
-
-func loadPrivateKey() (ssh.Signer, error) {
-	privateKeyPath := checkPrivateKeyPath()
-
-	key, err := os.ReadFile(privateKeyPath)
+func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
+	src := srcPath + "/" + filename
+	srcFile, err := sftpClient.Open(src)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read private key: %v", err)
+		log.Fatal("Failed to open remote file: ", err)
 	}
-
-	signer, err := ssh.ParsePrivateKey(key)
+	defer srcFile.Close()
+	
+	dst := dstPath + "/" + filename
+	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse private key: %v", err)
+		log.Fatal("Failed to open local file: ", err)
 	}
+	defer dstFile.Close()
 
-	return signer, nil
+	n, err := io.Copy(dstFile, srcFile)
+	if err != nil {
+		log.Fatal("Failed to copy file: ", err)
+	}
+	fmt.Printf("Copied %v: %v\n", FormatBytes(n), filename)
+
+	srcFile.Close()
+	if err := sftpClient.Rename(src, src + ".ok"); err != nil {
+		log.Fatal("Failed to rename file: ", err)
+	}
 }
