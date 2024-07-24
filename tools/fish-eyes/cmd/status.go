@@ -20,13 +20,13 @@ var statusCmd = &cobra.Command{
 			fmt.Printf("[ %v ]: ", info.Name)
 			switch info.Status {
 			case "online":
-				fmt.Printf("\033[32m%v\033[0m", info.Status)
+				fmt.Printf("%v", info.Status)
 			case "offline":
-				fmt.Printf("\033[31m%v\033[0m", info.Status)
+				fmt.Printf("%v", info.Status)
 			}
 			switch {
 			case info.Conf.RemotePort != 0:
-				fmt.Printf(", \033[34m%v\033[0m\n", info.Conf.RemotePort)
+				fmt.Printf(", %v\n", info.Conf.RemotePort)
 			default:
 				fmt.Print("\n")
 			}
