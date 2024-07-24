@@ -2,18 +2,19 @@ package frpc
 
 import (
 	"io"
+	"strconv"
 	"net/http"
 	"encoding/json"
 )
 
-type FrpClientConf struct {
+type frpClientConf struct {
 	RemotePort uint16 `json:"remote_port"`
 	// others are ignored
 }
 
-type FrpClientInfo struct {
+type frpClientInfo struct {
 	Name               string        `json:"name"`
-	Conf               FrpClientConf `json:"conf"`
+	Conf               frpClientConf `json:"conf"`
 	// TodayTrafficIn  int64         `json:"today_traffic_in"`
 	// TodayTrafficOut int64         `json:"today_traffic_out"`
 	// CurConns        int64         `json:"cur_conns"`
@@ -22,11 +23,11 @@ type FrpClientInfo struct {
 	Status             string        `json:"status"`
 }
 
-type FrpClientInfoBody struct {
-	Proxies []FrpClientInfo `json:"proxies"`
+type frpClientInfoBody struct {
+	Proxies []frpClientInfo `json:"proxies"`
 }
 
-func GetFrpcInfo() ([]FrpClientInfo, error) {
+func GetFrpcInfo() ([]frpClientInfo, error) {
 	resp, err := http.Get("https://frp.aifish.cc/api/proxy/tcp")
     if err != nil {
         return nil, err
@@ -38,10 +39,25 @@ func GetFrpcInfo() ([]FrpClientInfo, error) {
         return nil, err
     }
 
-	var data FrpClientInfoBody
+	var data frpClientInfoBody
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err
 	}
 	return data.Proxies ,nil
+}
+
+func GetFrpcInfoSlice() ([][]string, error) {
+	var infoMsg [][]string
+	infos, err := GetFrpcInfo() 
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range infos {
+		port := strconv.Itoa(int(info.Conf.RemotePort))
+		if port == "0" { port = "" }
+		infoMsg = append(infoMsg, []string{info.Name, info.Status, port})
+	}
+	return infoMsg, nil
 }

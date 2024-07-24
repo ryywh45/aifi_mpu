@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"io"
+	"strings"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -89,7 +90,14 @@ func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
 	fmt.Printf("Copied %v: %v\n", FormatBytes(n), filename)
 
 	srcFile.Close()
-	if err := sftpClient.Rename(src, src + ".ok"); err != nil {
+	if !strings.HasSuffix(src, ".ok") {
+		if err := sftpClient.Rename(src, src + ".ok"); err != nil {
+			log.Fatal("Failed to rename file: ", err)
+		}
+	}
+	
+	dstFile.Close()
+	if err := os.Rename(dst, strings.TrimSuffix(dst, ".ok")); err != nil {
 		log.Fatal("Failed to rename file: ", err)
 	}
 }

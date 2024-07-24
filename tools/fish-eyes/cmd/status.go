@@ -12,11 +12,11 @@ var statusCmd = &cobra.Command{
 	Short: "Show a status of frpc on fish",
 	Long: `Show a status of frpc on fish`,
 	Run: func(cmd *cobra.Command, args []string) {
-		infoList, err := frpc.GetFrpcInfo()
+		infos, err := frpc.GetFrpcInfo()
 		if err != nil {
 			log.Fatal("Failed to get frpc info: ", err)
 		}
-		for _, info := range infoList {
+		for _, info := range infos {
 			fmt.Printf("[ %v ]: ", info.Name)
 			switch info.Status {
 			case "online":
