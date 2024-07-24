@@ -2,8 +2,7 @@ version: 2
 
 before:
   hooks:
-    - sh -c "cd ./tools/fish-eyes"
-    - go mod tidy
+    - sh -c "cd ./tools/fish-eyes && go mod tidy"
 
 builds:
   - env:
