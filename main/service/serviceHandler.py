@@ -13,5 +13,13 @@ async def service_handler(service_name: str, service_data, serial_write, ws_send
             return await ws_send('picam_record.py', WebsocketMsg(3, 'stop'))
         elif service_data =='take-a-pic':
             return await ws_send('picam_record.py', WebsocketMsg(3, 'take-a-pic'))
+
     elif service_name == 'picam_record.py':
         return True
+        
+    elif service_name == 'picam_recog.py':
+        if isinstance(service_data, dict):
+            # TODO: process recognition result and send it to serial 
+            pass
+        else:
+            return True
