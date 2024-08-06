@@ -132,5 +132,6 @@ def stopRecognition():
 
 
 if __name__ == '__main__':
+    r = RecoResult()
     should_stop = False
-    recognitionLoop()
+    asyncio.run(recognitionLoop(r))
