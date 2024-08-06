@@ -7,8 +7,8 @@ import (
 
 var uiCmd = &cobra.Command{
 	Use:   "ui",
-	Short: "",
-	Long: ``,
+	Short: "show a simple ui of application",
+	Long: `show a simple ui of application`,
 	Run: func(cmd *cobra.Command, args []string) {
 		ui.Run()
 	},
