@@ -8,6 +8,7 @@ import (
 	"io"
 	"strings"
 	"runtime"
+	"path/filepath"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -62,7 +63,7 @@ func ChangeUsername(name string) {
 }
 
 func askHostname() {
-	content, err := os.ReadFile("./host")
+	content, err := os.ReadFile(filepath.Join(".", "host"))
 	if err != nil {
 		fmt.Print("Fish's ip address: ")
 		fmt.Scan(&hostname)
@@ -80,14 +81,14 @@ func askPassword() string {
 }
 
 func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
-	src := srcPath + "/" + filename
+	src := filepath.Join(srcPath, filename)
 	srcFile, err := sftpClient.Open(src)
 	if err != nil {
 		log.Fatal("Failed to open remote file: ", err)
 	}
 	defer srcFile.Close()
 	
-	dst := dstPath + "/" + filename
+	dst := filepath.Join(dstPath, filename)
 	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatal("Failed to open local file: ", err)
