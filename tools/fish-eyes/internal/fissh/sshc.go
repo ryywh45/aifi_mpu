@@ -81,7 +81,7 @@ func askPassword() string {
 }
 
 func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
-	src := filepath.Join(srcPath, filename)
+	src := srcPath + "/" + filename
 	srcFile, err := sftpClient.Open(src)
 	if err != nil {
 		log.Fatal("Failed to open remote file: ", err)
@@ -89,6 +89,7 @@ func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
 	defer srcFile.Close()
 	
 	dst := filepath.Join(dstPath, filename)
+                dst = strings.NewReplacer(":", "_").Replace(dst)
 	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatal("Failed to open local file: ", err)
