@@ -7,6 +7,7 @@ import (
 	"os"
 	"io"
 	"strings"
+	"runtime"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -18,22 +19,32 @@ var username string = "aifi-fish"
 
 func connect(port string) (*ssh.Client, error) {
 	askHostname()
+	var client *ssh.Client
+	var err error
 	config := &ssh.ClientConfig{
 		User: username,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
-
-	conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
-	if err != nil {
-		log.Fatalf("Failed to open SSH_AUTH_SOCK: %v", err)
-	}
-
-	agentClient := agent.NewClient(conn)
-	config.Auth = []ssh.AuthMethod{ ssh.PublicKeysCallback(agentClient.Signers) }
-
 	addr := hostname + ":" + port
-	client, err := ssh.Dial("tcp", addr, config)
-	if err != nil {
+
+	if runtime.GOOS != "windows" {
+		conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+		if err != nil {
+			log.Fatalf("Failed to open SSH_AUTH_SOCK: %v", err)
+		}
+
+		agentClient := agent.NewClient(conn)
+		config.Auth = []ssh.AuthMethod{ ssh.PublicKeysCallback(agentClient.Signers) }
+
+		client, err = ssh.Dial("tcp", addr, config)
+		if err != nil {
+			config.Auth = []ssh.AuthMethod{ ssh.Password(askPassword()) }
+			client, err = ssh.Dial("tcp", addr, config)
+			if err != nil {
+				return nil, fmt.Errorf("unable to connect to fish: %v", err)
+			}
+		}
+	} else {
 		config.Auth = []ssh.AuthMethod{ ssh.Password(askPassword()) }
 		client, err = ssh.Dial("tcp", addr, config)
 		if err != nil {
