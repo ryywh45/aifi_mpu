@@ -13,8 +13,8 @@ var username string
 
 var lsCmd = &cobra.Command{
 	Use:   "ls",
-	Short: "List video/picture on specify fish",
-	Long: `List video/picture on specify fish`,
+	Short: "List video/picture on specific fish",
+	Long: `List video/picture on specific fish`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fissh.ChangeUsername(username)
 		switch {
