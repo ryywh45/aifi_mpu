@@ -6,7 +6,7 @@ import json
 from communication.message import ServerToClient as WebsocketMsg
 from communication.message import ToSerial as SerialMsg
 from service.serviceHandler import service_handler
-from uart.serialHandler import serial_reader
+from uart.uartHandler import serial_reader
 
 
 class CommunicaionBridge:
