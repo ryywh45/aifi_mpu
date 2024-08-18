@@ -3,3 +3,4 @@ test.ipynb
 old*
 host
 dist/
+venv/
