@@ -41,7 +41,7 @@ git clone https://github.com/ryywh45/aifi_mpu.git
 ### 2. 建立虛擬環境並安裝相依套件
 ```
 cd aifi_mpu/main
-python3 -m venv venv
+python3 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
