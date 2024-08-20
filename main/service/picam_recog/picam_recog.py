@@ -37,7 +37,7 @@ async def main():
                 if data == "go":
                     print(f'To server -> {WebsocketMsg(NAME, "Starting recognition").show()}')
                     await ws.send(WebsocketMsg(NAME, "Starting recognition").to_json())
-                    asyncio.create_task(recognitionLoop(recoResult))
+                    asyncio.create_task(recognitionLoop(recoResult,ws))
 
                 elif data == "stop":
                     stopRecognition()

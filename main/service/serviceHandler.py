@@ -18,8 +18,7 @@ async def service_handler(service_name: str, service_data, serial_write, ws_send
         return True
         
     elif service_name == 'picam_recog.py':
-        if isinstance(service_data, dict):
-            # TODO: process recognition result and send it to serial 
-            pass
+        if isinstance(service_data, dict) and 'toSerial' in service_data:
+            return await serial_write(SerialMsg(service_data['toSerial']))
         else:
             return True

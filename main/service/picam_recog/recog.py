@@ -1,22 +1,22 @@
-# for new4.py
-import asyncio 
+#改成讀取1920*1080的影像 到模型辨識前才轉成320*240的影像
+import argparse
 import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from picamera2 import MappedArray, Picamera2
+import asyncio
 from picam_recog import RecoResult
-
-normalSize = (640, 480)
+import websockets.client as websockets
+from communication.message import ClientToServer as WebsocketMsg
+normalSize = (1920, 1080)
 lowresSize = (320, 240)
 
 rectangles = []
-
+NAME = 'picam_recog.py'
 modelPath = "./model/model1.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
-
 should_stop = True
-
 def ReadLabelFile(file_path):
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -30,13 +30,13 @@ def DrawRectangles(request):
     with MappedArray(request, "main") as m:
         for rect in rectangles:
             if len(rect) == 4:  
-                rect_start = (int(rect[0] * 2) - 5, int(rect[1] * 2) - 5)
-                rect_end = (int(rect[2] * 2) + 5, int(rect[3] * 2) + 5)
+                rect_start = (int(rect[0] * normalSize[0] / 320) - 5, int(rect[1] * normalSize[1] / 240) - 5)
+                rect_end = (int(rect[2] * normalSize[0] / 320) + 5, int(rect[3] * normalSize[1] / 240) + 5)
                 cv2.rectangle(m.array, rect_start, rect_end, (0, 255, 0, 255), 2)
             else:
                 print("Invalid rectangle:", rect) 
 
-def InferenceTensorFlow(result: RecoResult, image, model, output, label=None):
+async def InferenceTensorFlow(ws,result: RecoResult, image, model, output, label=None):
     global rectangles
 
     if label:
@@ -54,8 +54,8 @@ def InferenceTensorFlow(result: RecoResult, image, model, output, label=None):
     floating_model = input_details[0]['dtype'] == np.float32
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    initial_h, initial_w, channels = rgb.shape
 
+    # Resize the image to the model's input size
     picture = cv2.resize(rgb, (width, height))
 
     input_data = np.expand_dims(picture, axis=0)
@@ -70,11 +70,6 @@ def InferenceTensorFlow(result: RecoResult, image, model, output, label=None):
     detected_scores = interpreter.get_tensor(output_details[0]['index'])
     num_boxes = interpreter.get_tensor(output_details[2]['index'])
 
-    # print("num_boxes:", num_boxes)
-    # print("detected_boxes:", detected_boxes)
-    # print("detected_classes:", detected_classes)
-    # print("detected_scores:", detected_scores)
-
     num_boxes = int(num_boxes[0])
 
     rectangles = []
@@ -84,14 +79,11 @@ def InferenceTensorFlow(result: RecoResult, image, model, output, label=None):
         classId = int(detected_classes[0][i])
         score = detected_scores[0][i]
 
-        if score > 0.8:
-            ymin = top * initial_h
-            xmin = left * initial_w
-            ymax = bottom * initial_h
-            xmax = right * initial_w
-            # print(f"Box {i}:")
-            # print(f"  Detected box coordinates: {box}")
-            
+        if score > 0.6:
+            ymin = top * normalSize[1]
+            xmin = left * normalSize[0]
+            ymax = bottom * normalSize[1]
+            xmax = right * normalSize[0]
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
@@ -104,8 +96,11 @@ def InferenceTensorFlow(result: RecoResult, image, model, output, label=None):
             result.xmin, result.ymin = f"{xmin:.1f}", f"{ymin:.1f}"
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
             rectangles.append([xmin, ymin, xmax, ymax])
+            # res = result.to_dict().copy()
+            await ws.send(WebsocketMsg(NAME, {"toSerial":[ord("T"),int(classId),int(round(xmin+xmax)/2,0),int(round(ymin+ymax)/2,0)]}).to_json())
+    return rgb  # Return the resized RGB image for saving later
 
-async def recognitionLoop(recoResult: RecoResult):
+async def recognitionLoop(recoResult: RecoResult,ws):
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
@@ -117,20 +112,17 @@ async def recognitionLoop(recoResult: RecoResult):
     picam2.start()
 
     try:
-        while not should_stop:
+        while True:
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            InferenceTensorFlow(recoResult, grey, modelPath, outputName, labelPath)
+            InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
         picam2.stop()
-
 def stopRecognition():
     global should_stop
     should_stop = True
-
-
 if __name__ == '__main__':
     r = RecoResult()
     should_stop = False
