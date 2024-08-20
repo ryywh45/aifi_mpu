@@ -13,7 +13,7 @@ lowresSize = (320, 240)
 
 rectangles = []
 NAME = 'picam_recog.py'
-modelPath = "./model/model1.tflite"
+modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
