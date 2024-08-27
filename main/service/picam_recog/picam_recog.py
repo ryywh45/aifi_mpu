@@ -23,6 +23,7 @@ async def main():
     async with websockets.connect("ws://localhost:8000") as ws:
         await ws.send(WebsocketMsg(NAME, 'Hello').to_json())
         recoResult = RecoResult()
+        asyncio.create_task(recognitionLoop(recoResult,ws))
         try:
             async for message in ws:
                 try:

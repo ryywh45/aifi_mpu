@@ -72,13 +72,14 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     num_boxes = int(num_boxes[0])
 
     rectangles = []
+    print("new detect")
+    # await ws.send(WebsocketMsg(NAME, {"toSerial":
     for i in range(num_boxes):
         box = detected_boxes[0][i]
         top, left, bottom, right = box
         classId = int(detected_classes[0][i])
         score = detected_scores[0][i]
-
-        if score > 0.6:
+        if score > 0.7:
             ymin = top * normalSize[1]
             xmin = left * normalSize[0]
             ymax = bottom * normalSize[1]
@@ -96,7 +97,19 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
             rectangles.append([xmin, ymin, xmax, ymax])
             # res = result.to_dict().copy()
-            await ws.send(WebsocketMsg(NAME, {"toSerial":[ord("T"),int(classId),int(round(xmin+xmax)/2,0),int(round(ymin+ymax)/2,0)]}).to_json())
+            if xmin <= 0: xmin = 0
+            if xmax <= 0: xmax = 0
+            if ymin <= 0: ymin = 0
+            if ymax <= 0: ymax = 0
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(xmin // 100, 0)), int(round(xmin % 100, 0))]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(xmax // 100, 0)), int(round(xmax % 100, 0))]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(ymin // 100, 0)), int(round(ymin % 100, 0))]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(ymax //100, 0)), int(round(ymax % 100, 0))]}).to_json())
+            await asyncio.sleep(0.5)
     return rgb  # Return the resized RGB image for saving later
 
 async def recognitionLoop(recoResult, ws):
@@ -114,7 +127,7 @@ async def recognitionLoop(recoResult, ws):
         while True:
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
+            await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
