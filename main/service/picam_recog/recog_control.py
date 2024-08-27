@@ -5,7 +5,6 @@ import numpy as np
 import tflite_runtime.interpreter as tflite
 from picamera2 import MappedArray, Picamera2
 import asyncio
-from picam_recog import RecoResult
 import websockets.client as websockets
 from communication.message import ClientToServer as WebsocketMsg
 normalSize = (1920, 1080)
@@ -36,7 +35,7 @@ def DrawRectangles(request):
             else:
                 print("Invalid rectangle:", rect) 
 
-async def InferenceTensorFlow(ws,result: RecoResult, image, model, output, label=None):
+async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     global rectangles
 
     if label:
@@ -100,7 +99,7 @@ async def InferenceTensorFlow(ws,result: RecoResult, image, model, output, label
             await ws.send(WebsocketMsg(NAME, {"toSerial":[ord("T"),int(classId),int(round(xmin+xmax)/2,0),int(round(ymin+ymax)/2,0)]}).to_json())
     return rgb  # Return the resized RGB image for saving later
 
-async def recognitionLoop(recoResult: RecoResult,ws):
+async def recognitionLoop(recoResult, ws):
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
@@ -123,7 +122,3 @@ async def recognitionLoop(recoResult: RecoResult,ws):
 def stopRecognition():
     global should_stop
     should_stop = True
-if __name__ == '__main__':
-    r = RecoResult()
-    should_stop = False
-    asyncio.run(recognitionLoop(r))
