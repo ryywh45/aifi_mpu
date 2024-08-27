@@ -44,6 +44,7 @@ cd aifi_mpu/main
 python3 -m venv --system-site-packages venv
 source venv/bin/activate
 pip install -r requirements.txt
+source ./init.sh
 ```
 ### 3. 啟動main.py
 ```
