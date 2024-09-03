@@ -143,7 +143,7 @@ async def resultforControl(ws):
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("D"), 0, 0, 0]}).to_json())
-        if Xmid > 540:
+        elif Ymid > 540:
             print("U")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
