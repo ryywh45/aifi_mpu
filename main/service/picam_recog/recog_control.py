@@ -131,18 +131,18 @@ async def resultforControl(ws):
     if Xmax-Xmin <= 1536: #1536  80%的值都改成變數
         if Xmid < 960:
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("C"), 1, 0, 0]}).to_json())
+                [ord("R"), ord("1"), 0, 0]}).to_json())
         elif Xmid > 960:
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("C"), 2, 0, 0]}).to_json())
+                [ord("L"), ord("1"), 0, 0]}).to_json())
     
     if Ymax-Ymin <= 864:
         if Ymid < 540:
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("C"), 3, 0, 0]}).to_json())
+                [ord("D"), 0, 0, 0]}).to_json())
         if Xmid > 540:
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("C"), 4, 0, 0]}).to_json())
+                [ord("U"), 0, 0, 0]}).to_json())
         
     if Xmax-Xmin > 1536:
         if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
