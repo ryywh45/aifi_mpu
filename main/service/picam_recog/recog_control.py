@@ -11,6 +11,7 @@ normalSize = (1920, 1080)
 lowresSize = (320, 240)
 
 rectangles = []
+Detectnum = 0
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
@@ -37,7 +38,6 @@ def DrawRectangles(request):
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     global rectangles
-
     if label:
         labels = ReadLabelFile(label)
     else:
@@ -70,15 +70,15 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     num_boxes = interpreter.get_tensor(output_details[2]['index'])
 
     num_boxes = int(num_boxes[0])
-
-    rectangles = []
+    print("new detect")
+    # await ws.send(WebsocketMsg(NAME, {"toSerial":
     for i in range(num_boxes):
         box = detected_boxes[0][i]
         top, left, bottom, right = box
         classId = int(detected_classes[0][i])
         score = detected_scores[0][i]
-
-        if score > 0.6:
+        if score > 0.7:
+            Detectnum += 1
             ymin = top * normalSize[1]
             xmin = left * normalSize[0]
             ymax = bottom * normalSize[1]
@@ -94,10 +94,61 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             print(f"  Coordinates in pixels: xmin = {xmin:.1f}, ymin = {ymin:.1f}, xmax = {xmax:.1f}, ymax = {ymax:.1f}")
             result.xmin, result.ymin = f"{xmin:.1f}", f"{ymin:.1f}"
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
-            rectangles.append([xmin, ymin, xmax, ymax])
+            
             # res = result.to_dict().copy()
-            await ws.send(WebsocketMsg(NAME, {"toSerial":[ord("T"),int(classId),int(round(xmin+xmax)/2,0),int(round(ymin+ymax)/2,0)]}).to_json())
+            if xmin <= 0: xmin = 0
+            if xmax <= 0: xmax = 0
+            if ymin <= 0: ymin = 0
+            if ymax <= 0: ymax = 0
+            rectangles.append([xmin, ymin, xmax, ymax])
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(xmin // 100, 0)), int(round(xmin % 100, 0))]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(xmax // 100, 0)), int(round(xmax % 100, 0))]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(ymin // 100, 0)), int(round(ymin % 100, 0))]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("T"), int(str(classId) + str(i)), int(round(ymax //100, 0)), int(round(ymax % 100, 0))]}).to_json())
+            await asyncio.sleep(0.5)
+    if Detectnum == 5:
+        await resultforControl(ws)
+        Detectnum = 0
+        rectangles = []
     return rgb  # Return the resized RGB image for saving later
+async def resultforControl(ws):
+    for i in range(len(rectangles)):
+        Xmin += rectangles[i][0]
+        Ymin += rectangles[i][1]
+        Xmax += rectangles[i][2]
+        Ymax += rectangles[i][3]
+    if len(rectangles) > 0:
+        Xmin = Xmin / len(rectangles)
+        Ymin = Ymin / len(rectangles)
+        Xmax = Xmax / len(rectangles)
+        Ymax = Ymax / len(rectangles)
+    Xmid = (Xmin + Xmax) / 2
+    Ymid = (Ymin + Ymax) / 2
+    if Xmax-Xmin <= 1536: #1536  80%的值都改成變數
+        if Xmid < 960:
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("C"), 1, 0, 0]}).to_json())
+        elif Xmid > 960:
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("C"), 2, 0, 0]}).to_json())
+    
+    if Ymax-Ymin <= 864:
+        if Ymid < 540:
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("C"), 3, 0, 0]}).to_json())
+        if Xmid > 540:
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("C"), 4, 0, 0]}).to_json())
+        
+    if Xmax-Xmin > 1536:
+        if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("!"), 0, 0, 0]}).to_json())
+
 
 async def recognitionLoop(recoResult, ws):
     picam2 = Picamera2()
@@ -114,7 +165,7 @@ async def recognitionLoop(recoResult, ws):
         while True:
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
+            await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
