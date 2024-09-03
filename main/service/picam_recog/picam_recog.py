@@ -5,7 +5,7 @@ from dataclasses import dataclass, asdict
 from communication.message import ClientToServer as WebsocketMsg
 NAME = 'picam_recog.py'
 
-from recog import recognitionLoop, stopRecognition
+from recog_control import recognitionLoop, stopRecognition
 
 @dataclass()
 class RecoResult:
