@@ -12,6 +12,7 @@ lowresSize = (320, 240)
 
 rectangles = []
 Detectnum = 0
+IsSteady = False
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
@@ -111,6 +112,7 @@ async def resultforControl(ws):
     Ymin = 0
     Xmax = 0
     Ymax = 0
+    global IsSteady
     for i in range(len(rectangles)):
         Xmin += rectangles[i][0]
         Ymin += rectangles[i][1]
@@ -126,28 +128,36 @@ async def resultforControl(ws):
     if Xmax-Xmin <= 1536: #1536  80%的值都改成變數
         if Xmid < 960:
             print("R")
+            IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("R"), ord("1"), 0, 0]}).to_json())
         elif Xmid > 960:
             print("L")
+            IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("L"), ord("1"), 0, 0]}).to_json())
     
     if Ymax-Ymin <= 864:
         if Ymid < 540:
             print("D")
+            IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("D"), 0, 0, 0]}).to_json())
         if Xmid > 540:
             print("U")
+            IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("U"), 0, 0, 0]}).to_json())
         
     if Xmax-Xmin > 1536:
         if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
-            print("!")
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("!"), 0, 0, 0]}).to_json())
+            print("Already !")
+            if IsSteady == False:
+                print("!")
+                await ws.send(WebsocketMsg(NAME, {"toSerial":
+                    [ord("!"), 0, 0, 0]}).to_json())
+                IsSteady = True
+            
 
 
 async def recognitionLoop(recoResult, ws):
