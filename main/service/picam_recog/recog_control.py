@@ -101,15 +101,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                    [ord("T"), int(str(classId) + str(i)), int(round(xmin // 100, 0)), int(round(xmin % 100, 0))]}).to_json())
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                    [ord("T"), int(str(classId) + str(i)), int(round(xmax // 100, 0)), int(round(xmax % 100, 0))]}).to_json())
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                    [ord("T"), int(str(classId) + str(i)), int(round(ymin // 100, 0)), int(round(ymin % 100, 0))]}).to_json())
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                    [ord("T"), int(str(classId) + str(i)), int(round(ymax //100, 0)), int(round(ymax % 100, 0))]}).to_json())
-            await asyncio.sleep(0.5)
     if Detectnum == 5:
         await resultforControl(ws)
         Detectnum = 0
@@ -134,22 +125,27 @@ async def resultforControl(ws):
     Ymid = (Ymin + Ymax) / 2
     if Xmax-Xmin <= 1536: #1536  80%的值都改成變數
         if Xmid < 960:
+            print("R")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("R"), ord("1"), 0, 0]}).to_json())
         elif Xmid > 960:
+            print("L")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("L"), ord("1"), 0, 0]}).to_json())
     
     if Ymax-Ymin <= 864:
         if Ymid < 540:
+            print("D")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("D"), 0, 0, 0]}).to_json())
         if Xmid > 540:
+            print("U")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("U"), 0, 0, 0]}).to_json())
         
     if Xmax-Xmin > 1536:
         if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
+            print("!")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("!"), 0, 0, 0]}).to_json())
 
