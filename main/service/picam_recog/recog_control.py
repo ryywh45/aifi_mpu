@@ -166,11 +166,12 @@ async def recognitionLoop(recoResult, ws):
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
+            await asyncio.sleep(0.5)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
         picam2.stop()
-    asyncio.sleep(0.5)
+    
 def stopRecognition():
     global should_stop
     should_stop = True
