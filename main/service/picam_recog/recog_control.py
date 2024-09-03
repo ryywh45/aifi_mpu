@@ -151,12 +151,13 @@ async def resultforControl(ws):
         
     if Xmax-Xmin > 1536:
         if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
-            print("Already !")
             if IsSteady == False:
                 print("!")
                 await ws.send(WebsocketMsg(NAME, {"toSerial":
                     [ord("!"), 0, 0, 0]}).to_json())
                 IsSteady = True
+            else:
+                print("Already !")
             
 
 
