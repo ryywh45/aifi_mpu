@@ -116,6 +116,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         rectangles = []
     return rgb  # Return the resized RGB image for saving later
 async def resultforControl(ws):
+    Xmin = 0
+    Ymin = 0
+    Xmax = 0
+    Ymax = 0
     for i in range(len(rectangles)):
         Xmin += rectangles[i][0]
         Ymin += rectangles[i][1]
