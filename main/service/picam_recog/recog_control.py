@@ -170,6 +170,7 @@ async def recognitionLoop(recoResult, ws):
         print("Exiting...")
     finally:
         picam2.stop()
+    asyncio.sleep(0.5)
 def stopRecognition():
     global should_stop
     should_stop = True
