@@ -49,7 +49,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = None
 
     # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-    interpreter = edgetpu.make_interpreter(model_path=model)
+    interpreter = edgetpu.make_interpreter(model_file=model)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
