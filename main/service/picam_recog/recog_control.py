@@ -4,10 +4,13 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from picamera2 import MappedArray, Picamera2
-from tflite_runtime.interpreter import load_delegate  # 用於TPU
 import asyncio
 import websockets.client as websockets
 from communication.message import ClientToServer as WebsocketMsg
+from pycoral.utils import edgetpu
+from pycoral.utils import dataset
+from pycoral.adapters import common
+from pycoral.adapters import classify
 normalSize = (1920, 1080)
 lowresSize = (320, 240)
 
@@ -15,7 +18,7 @@ rectangles = []
 Detectnum = 0
 IsSteady = False
 NAME = 'picam_recog.py'
-modelPath = "./model/model2_edgetpu.tflite"
+modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
@@ -46,8 +49,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = None
 
     # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-    interpreter = tflite.Interpreter(model_path=model, 
-                                     experimental_delegates=[load_delegate('libedgetpu.so.1')])
+    interpreter = edgetpu.make_interpreter(model_path=model)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
@@ -107,7 +109,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             rectangles.append([xmin, ymin, xmax, ymax])
     print(Detectnum)
     if Detectnum >= 5:
-        # await resultforControl(ws)
+        await resultforControl(ws)
         Detectnum = 0
         rectangles = []
     else:
