@@ -136,6 +136,8 @@ async def resultforControl(ws):
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("L"), ord("1"), 0, 0]}).to_json())
+        else:
+            print("X pixal OK")
     
     if Ymax-Ymin <= 864:
         if Ymid < 540:
@@ -148,6 +150,8 @@ async def resultforControl(ws):
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("U"), 0, 0, 0]}).to_json())
+        else:
+            print("Y pixal OK")
         
     if Xmax-Xmin > 1536:
         if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
@@ -158,6 +162,7 @@ async def resultforControl(ws):
                 IsSteady = True
             else:
                 print("Already !")
+    print("already send command!")
             
 
 
