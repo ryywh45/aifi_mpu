@@ -44,7 +44,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     else:
         labels = None
 
-    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    # interpreter = tflite.Interpreter(model_path=model, num_threads=4) old
+    interpreter = make_interpreter(model)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
@@ -64,7 +65,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     interpreter.set_tensor(input_details[0]['index'], input_data)
 
-    interpreter.invoke()
+    # interpreter.invoke()  old
+    run_inference(interpreter)
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
     detected_classes = interpreter.get_tensor(output_details[3]['index'])
     detected_scores = interpreter.get_tensor(output_details[0]['index'])
