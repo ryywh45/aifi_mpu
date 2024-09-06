@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from picamera2 import MappedArray, Picamera2
+from tflite_runtime.interpreter import load_delegate  # 用於TPU
 import asyncio
 import websockets.client as websockets
 from communication.message import ClientToServer as WebsocketMsg
@@ -44,8 +45,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     else:
         labels = None
 
-    # interpreter = tflite.Interpreter(model_path=model, num_threads=4) old
-    interpreter = make_interpreter(model)
+    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = tflite.Interpreter(model_path=model, 
+                                     experimental_delegates=[load_delegate('libedgetpu.so.1')])
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
@@ -65,8 +67,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     interpreter.set_tensor(input_details[0]['index'], input_data)
 
-    # interpreter.invoke()  old
-    run_inference(interpreter)
+    interpreter.invoke()
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
     detected_classes = interpreter.get_tensor(output_details[3]['index'])
     detected_scores = interpreter.get_tensor(output_details[0]['index'])
@@ -104,13 +105,13 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
-    # print(Detectnum)
-    # if Detectnum >= 5:
-    #     await resultforControl(ws)
-    #     Detectnum = 0
-    #     rectangles = []
-    # else:
-    #     print("controlFun Error")
+    print(Detectnum)
+    if Detectnum >= 5:
+        await resultforControl(ws)
+        Detectnum = 0
+        rectangles = []
+    else:
+        print("controlFun Error")
     return rgb  # Return the resized RGB image for saving later
 async def resultforControl(ws):
     Xmin = 0
