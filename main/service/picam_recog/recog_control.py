@@ -106,6 +106,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         await resultforControl(ws)
         Detectnum = 0
         rectangles = []
+    else:
+        print("controlFun Error")
     return rgb  # Return the resized RGB image for saving later
 async def resultforControl(ws):
     Xmin = 0
