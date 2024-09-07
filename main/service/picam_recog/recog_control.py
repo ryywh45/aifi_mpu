@@ -61,7 +61,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     picture = cv2.resize(rgb, (width, height))
-
+    end_time = time.time()
+    processing_time = end_time - start_time
+    print(f"模型辨識時間: {processing_time:.4f} seconds")
     input_data = np.expand_dims(picture, axis=0)
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
@@ -107,9 +109,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
     print(Detectnum)
-    end_time = time.time()
-    processing_time = end_time - start_time
-    print(f"模型辨識時間: {processing_time:.4f} seconds")
+    
     if Detectnum >= 5:
         await resultforControl(ws)
         Detectnum = 0
