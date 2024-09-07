@@ -48,7 +48,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     else:
         labels = None
 
-    # interpreter = tflite.Interpreter(model_path=model, num_threads=4) old
+    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
@@ -58,24 +58,14 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     width = input_details[0]['shape'][2]
     floating_model = input_details[0]['dtype'] == np.float32
 
-    # rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    # picture = cv2.resize(rgb, (width, height)) old
-    picture = cv2.resize(image, (width, height))
+    rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    picture = cv2.resize(rgb, (width, height))
 
     input_data = np.expand_dims(picture, axis=0)
-    # if floating_model:
-    #     input_data = (np.float32(input_data) - 127.5) / 127.5 old
     if floating_model:
-        # 转换为 float32 并归一化
-        picture = (picture.astype(np.float32) - 127.5) / 127.5
-        print("Picture dtype after conversion:", picture.dtype)
-    else:
-        # 保持为 uint8
-        picture = picture.astype(np.uint8)
-        print("Picture dtype after conversion:", picture.dtype)
+        input_data = (np.float32(input_data) - 127.5) / 127.5
 
-    # interpreter.set_tensor(input_details[0]['index'], input_data) old
-    interpreter.set_tensor(input_details[0]['index'], picture)
+    interpreter.set_tensor(input_details[0]['index'], input_data)
 
     interpreter.invoke()
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
@@ -184,25 +174,21 @@ async def resultforControl(ws):
 
 async def recognitionLoop(recoResult, ws):
     picam2 = Picamera2()
-    # config = picam2.create_preview_configuration(main={"size": normalSize},
-    #                                              lores={"size": lowresSize, "format": "YUV420"}) old
-    config = picam2.create_preview_configuration(main={"size": normalSize})
+    config = picam2.create_preview_configuration(main={"size": normalSize},
+                                                 lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
 
-    # stride = picam2.stream_configuration("lores")["stride"]
-    # picam2.post_callback = DrawRectangles old
+    stride = picam2.stream_configuration("lores")["stride"]
+    picam2.post_callback = DrawRectangles
 
     picam2.start()
 
     try:
         while True:
-            # buffer = picam2.capture_buffer("lores")
-            # grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            # await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
-            # await asyncio.sleep(0.1) old
-            image = picam2.capture_array("main")  # 直接读取高分辨率图像
-            await InferenceTensorFlow(ws, recoResult, image, modelPath, outputName, labelPath)
-            await asyncio.sleep(0.1)
+            buffer = picam2.capture_buffer("lores")
+            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+            await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
+            await asyncio.sleep(0.01)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
