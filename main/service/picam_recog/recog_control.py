@@ -66,7 +66,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    # interpreter.set_tensor(input_details[0]['index'], input_data) old
+    interpreter.set_tensor(input_details[0]['index'], picture)
 
     interpreter.invoke()
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
