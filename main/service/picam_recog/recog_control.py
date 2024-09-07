@@ -11,6 +11,7 @@ from pycoral.utils import edgetpu
 from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
+import time
 normalSize = (1920, 1080)
 lowresSize = (320, 240)
 
@@ -47,7 +48,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = ReadLabelFile(label)
     else:
         labels = None
-
+    start_time = time.time()
     # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
@@ -106,6 +107,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
     print(Detectnum)
+    end_time = time.time()
+    processing_time = end_time - start_time
+    print(f"模型辨識時間: {processing_time:.4f} seconds")
     if Detectnum >= 5:
         await resultforControl(ws)
         Detectnum = 0
