@@ -63,8 +63,16 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     picture = cv2.resize(image, (width, height))
 
     input_data = np.expand_dims(picture, axis=0)
+    # if floating_model:
+    #     input_data = (np.float32(input_data) - 127.5) / 127.5 old
     if floating_model:
-        input_data = (np.float32(input_data) - 127.5) / 127.5
+        # 转换为 float32 并归一化
+        picture = (picture.astype(np.float32) - 127.5) / 127.5
+        print("Picture dtype after conversion:", picture.dtype)
+    else:
+        # 保持为 uint8
+        picture = picture.astype(np.uint8)
+        print("Picture dtype after conversion:", picture.dtype)
 
     # interpreter.set_tensor(input_details[0]['index'], input_data) old
     interpreter.set_tensor(input_details[0]['index'], picture)
