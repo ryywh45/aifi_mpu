@@ -57,7 +57,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     output_details = interpreter.get_output_details()
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
-    floating_model = input_details[0]['dtype'] == np.float32
+    floating_model = False
+    if input_details[0]['dtype'] == np.float32:
+        floating_model = True
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     picture = cv2.resize(rgb, (width, height))
@@ -115,7 +117,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         Detectnum = 0
         rectangles = []
     else:
-        print("controlFun Error")
+        print("controlFun not implemented")
     return rgb  # Return the resized RGB image for saving later
 async def resultforControl(ws):
     Xmin = 0
