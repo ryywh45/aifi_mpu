@@ -29,14 +29,16 @@ async def send_loop(ws) -> int:
                     data = await loop.run_in_executor(
                         None, 
                         lambda: input("\nEnter w,x,y,z to send to serial\n* length must be 4\n* values must be integers\nor 'exit' to exit\n> "))
-                    if len(data.split(',')) == 4 and all(int(x) for x in data.split(',')):
+                    if len(data.split(',')) == 4 and all(ord(x) for x in data.split(',')):
                         break
                     elif data == 'exit':
                         return
                     else:
                         print("\033[31mInvalid input\n\033[0m")
                 new_data = data.split(',')
-                new_data[0] = ord(new_data[0])
+                for x in range(new_data):
+                    new_data[x] = ord(new_data[x])
+                
                 await ws.send(WebsocketMsg(NAME, {'toSerial': [int(x) for x in new_data]}).to_json())
             elif userinput == 2:
                 await ws.send(WebsocketMsg(NAME, 'startRecording').to_json())
