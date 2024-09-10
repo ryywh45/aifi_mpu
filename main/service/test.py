@@ -29,7 +29,7 @@ async def send_loop(ws) -> int:
                     data = await loop.run_in_executor(
                         None, 
                         lambda: input("\nEnter w,x,y,z to send to serial\n* length must be 4\n* values must be integers\nor 'exit' to exit\n> "))
-                    if len(data.split(',')) == 4 and all(ord(x) for x in data.split(',')):
+                    if len(data.split(',')) == 4 and all(ord(x[0]) for x in data.split(',')):
                         break
                     elif data == 'exit':
                         return
