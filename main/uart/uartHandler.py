@@ -36,6 +36,8 @@ async def serial_reader(ser, serial_write, ws_send):
                     await ws_send('picam_record.py', WebsocketMsg(3, 'go'))
                 elif data[1] == 1:
                     await ws_send('picam_record.py', WebsocketMsg(3, 'stop'))
+                elif data[1] == 2:
+                    await ws_send('picam_record.py', WebsocketMsg(3, 'take-a-pic'))
                 else:
                     pass
             else:
