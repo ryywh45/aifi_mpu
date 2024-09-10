@@ -2,13 +2,13 @@ package fissh
 
 import (
 	"fmt"
-	"net"
-	"log"
-	"os"
 	"io"
-	"strings"
-	"runtime"
+	"log"
+	"net"
+	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -23,34 +23,28 @@ func connect(port string) (*ssh.Client, error) {
 	var client *ssh.Client
 	var err error
 	config := &ssh.ClientConfig{
-		User: username,
+		User:            username,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	addr := hostname + ":" + port
 
 	if runtime.GOOS != "windows" {
 		conn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
-		if err != nil {
-			log.Fatalf("Failed to open SSH_AUTH_SOCK: %v", err)
-		}
-
-		agentClient := agent.NewClient(conn)
-		config.Auth = []ssh.AuthMethod{ ssh.PublicKeysCallback(agentClient.Signers) }
-
-		client, err = ssh.Dial("tcp", addr, config)
-		if err != nil {
-			config.Auth = []ssh.AuthMethod{ ssh.Password(askPassword()) }
+		if err == nil {
+			agentClient := agent.NewClient(conn)
+			config.Auth = []ssh.AuthMethod{ssh.PublicKeysCallback(agentClient.Signers)}
 			client, err = ssh.Dial("tcp", addr, config)
-			if err != nil {
-				return nil, fmt.Errorf("unable to connect to fish: %v", err)
+			if err == nil {
+				// connected
+				return client, nil
 			}
 		}
-	} else {
-		config.Auth = []ssh.AuthMethod{ ssh.Password(askPassword()) }
-		client, err = ssh.Dial("tcp", addr, config)
-		if err != nil {
-			return nil, fmt.Errorf("unable to connect to fish: %v", err)
-		}
+	}
+
+	config.Auth = []ssh.AuthMethod{ssh.Password(askPassword())}
+	client, err = ssh.Dial("tcp", addr, config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to connect to fish: %v", err)
 	}
 
 	return client, nil
@@ -75,21 +69,26 @@ func askHostname() {
 
 func askPassword() string {
 	var password string
-	fmt.Printf("%v@%v's password: ", username, hostname)
-	fmt.Scan(&password)
+	content, err := os.ReadFile(filepath.Join(".", "psw"))
+	if err != nil {
+		fmt.Printf("%v@%v's password: ", username, hostname)
+		fmt.Scan(&password)
+		os.WriteFile("./psw", []byte(password), 0644)
+	}
+	password = string(content)
 	return password
 }
 
-func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
+func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string) {
 	src := srcPath + "/" + filename
 	srcFile, err := sftpClient.Open(src)
 	if err != nil {
 		log.Fatal("Failed to open remote file: ", err)
 	}
 	defer srcFile.Close()
-	
+
 	dst := filepath.Join(dstPath, filename)
-                dst = strings.NewReplacer(":", "_").Replace(dst)
+	dst = strings.NewReplacer(":", "_").Replace(dst)
 	dstFile, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatal("Failed to open local file: ", err)
@@ -104,11 +103,11 @@ func copySingleFile(sftpClient *sftp.Client, filename, srcPath, dstPath string){
 
 	srcFile.Close()
 	if !strings.HasSuffix(src, ".ok") {
-		if err := sftpClient.Rename(src, src + ".ok"); err != nil {
+		if err := sftpClient.Rename(src, src+".ok"); err != nil {
 			log.Fatal("Failed to rename file: ", err)
 		}
 	}
-	
+
 	dstFile.Close()
 	if err := os.Rename(dst, strings.TrimSuffix(dst, ".ok")); err != nil {
 		log.Fatal("Failed to rename file: ", err)

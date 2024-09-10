@@ -2,5 +2,6 @@
 test.ipynb
 old*
 host
+psw
 dist/
 venv/
