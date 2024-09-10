@@ -35,7 +35,9 @@ async def send_loop(ws) -> int:
                         return
                     else:
                         print("\033[31mInvalid input\n\033[0m")
-                await ws.send(WebsocketMsg(NAME, {'toSerial': [int(x) for x in data.split(',')]}).to_json())
+                new_data = data.split(',')
+                new_data[0] = ord(new_data[0])
+                await ws.send(WebsocketMsg(NAME, {'toSerial': [int(x) for x in new_data]}).to_json())
             elif userinput == 2:
                 await ws.send(WebsocketMsg(NAME, 'startRecording').to_json())
             elif userinput == 3:
