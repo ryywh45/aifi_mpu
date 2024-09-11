@@ -63,7 +63,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     input_type = input_details[0]['dtype']
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     picture = cv2.resize(rgb, (width, height))
-
+    end_time = time.time()
+    processing_time = end_time - start_time
+    print(f"模型辨識時間: {processing_time:.4f} seconds")
     # Check if the model uses INT8
     if input_type == np.int8:
         # Quantize the input data (from 0 to 255 to -128 to 127)
