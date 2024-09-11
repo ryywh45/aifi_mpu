@@ -49,28 +49,33 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     else:
         labels = None
     start_time = time.time()
-    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-    interpreter = tflite.Interpreter(model_path=model,
-        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
-    # interpreter = edgetpu.make_interpreter(model)
+    interpreter = tflite.Interpreter(
+        model_path=model,
+        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
+    )
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
-    floating_model = False
-    if input_details[0]['dtype'] == np.float32:
-        floating_model = True
 
+    input_type = input_details[0]['dtype']
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     picture = cv2.resize(rgb, (width, height))
-    end_time = time.time()
-    processing_time = end_time - start_time
-    print(f"模型辨識時間: {processing_time:.4f} seconds")
-    input_data = np.expand_dims(picture, axis=0)
-    if floating_model:
-        input_data = (np.float32(input_data) - 127.5) / 127.5
+
+    # Check if the model uses INT8
+    if input_type == np.int8:
+        # Quantize the input data (from 0 to 255 to -128 to 127)
+        input_scale, input_zero_point = input_details[0]['quantization']
+        input_data = np.expand_dims(picture, axis=0).astype(np.int8)
+        input_data = (input_data / input_scale + input_zero_point).astype(np.int8)
+    else:
+        # For float models, normalize the input
+        floating_model = input_type == np.float32
+        input_data = np.expand_dims(picture, axis=0).astype(np.float32)
+        if floating_model:
+            input_data = (input_data - 127.5) / 127.5
 
     interpreter.set_tensor(input_details[0]['index'], input_data)
 
@@ -82,7 +87,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     num_boxes = int(num_boxes[0])
     print("new detect")
-    # await ws.send(WebsocketMsg(NAME, {"toSerial":
+
     for i in range(num_boxes):
         box = detected_boxes[0][i]
         top, left, bottom, right = box
@@ -105,15 +110,15 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             print(f"  Coordinates in pixels: xmin = {xmin:.1f}, ymin = {ymin:.1f}, xmax = {xmax:.1f}, ymax = {ymax:.1f}")
             result.xmin, result.ymin = f"{xmin:.1f}", f"{ymin:.1f}"
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
-            
-            # res = result.to_dict().copy()
+
             if xmin <= 0: xmin = 0
             if xmax <= 0: xmax = 0
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
+
     print(Detectnum)
-    
+
     if Detectnum >= 5:
         await resultforControl(ws)
         Detectnum = 0
@@ -121,6 +126,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     else:
         print("controlFun not implemented")
     return rgb  # Return the resized RGB image for saving later
+
 async def resultforControl(ws):
     Xmin = 0
     Ymin = 0
