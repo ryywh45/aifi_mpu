@@ -48,6 +48,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = ReadLabelFile(label)
     else:
         labels = None
+    
+    start_time = time.time()
     interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     # interpreter = tflite.Interpreter(model_path=model,
     #     experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
@@ -194,7 +196,6 @@ async def recognitionLoop(recoResult, ws):
 
     try:
         while True:
-            start_time = time.time()
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
