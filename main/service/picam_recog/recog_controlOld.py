@@ -12,7 +12,7 @@ from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
 import time
-normalSize = (1920, 1080)
+normalSize = (320, 240)
 lowresSize = (320, 240)
 
 rectangles = []
@@ -48,10 +48,11 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = ReadLabelFile(label)
     else:
         labels = None
+    
     start_time = time.time()
-    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-    interpreter = tflite.Interpreter(model_path=model,
-        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
+    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    # interpreter = tflite.Interpreter(model_path=model,
+    #     experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
     # interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
@@ -64,17 +65,18 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         floating_model = True
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    picture = cv2.resize(rgb, (width, height))
+    picture = cv2.resize(rgb, (width, height)) 
     end_time = time.time()
     processing_time = end_time - start_time
     print(f"模型辨識時間: {processing_time:.4f} seconds")
+
     input_data = np.expand_dims(picture, axis=0)
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
     interpreter.set_tensor(input_details[0]['index'], input_data)
-
     interpreter.invoke()
+
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
     detected_classes = interpreter.get_tensor(output_details[3]['index'])
     detected_scores = interpreter.get_tensor(output_details[0]['index'])
@@ -82,7 +84,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     num_boxes = int(num_boxes[0])
     print("new detect")
-    # await ws.send(WebsocketMsg(NAME, {"toSerial":
+    
     for i in range(num_boxes):
         box = detected_boxes[0][i]
         top, left, bottom, right = box
@@ -105,22 +107,22 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             print(f"  Coordinates in pixels: xmin = {xmin:.1f}, ymin = {ymin:.1f}, xmax = {xmax:.1f}, ymax = {ymax:.1f}")
             result.xmin, result.ymin = f"{xmin:.1f}", f"{ymin:.1f}"
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
-            
-            # res = result.to_dict().copy()
+
             if xmin <= 0: xmin = 0
             if xmax <= 0: xmax = 0
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
     print(Detectnum)
-    
+
     if Detectnum >= 5:
         await resultforControl(ws)
         Detectnum = 0
         rectangles = []
     else:
         print("controlFun not implemented")
-    return rgb  # Return the resized RGB image for saving later
+    return rgb  
+
 async def resultforControl(ws):
     Xmin = 0
     Ymin = 0
@@ -139,13 +141,13 @@ async def resultforControl(ws):
         Ymax = Ymax / len(rectangles)
     Xmid = (Xmin + Xmax) / 2
     Ymid = (Ymin + Ymax) / 2
-    if Xmax-Xmin <= 1536: #1536  80%的值都改成變數
-        if Xmid < 960:
+    if Xmax-Xmin <= 256: #1536  80%的值都改成變數
+        if Xmid < 160:
             print("R")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("R"), ord("1"), 0, 0]}).to_json())
-        elif Xmid > 960:
+        elif Xmid > 160:
             print("L")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -153,8 +155,8 @@ async def resultforControl(ws):
         else:
             print("X pixal OK")
     
-    if Ymax-Ymin <= 864:
-        if Ymid < 540:
+    if Ymax-Ymin <= 192:
+        if Ymid < 120:
             print("D")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -167,8 +169,8 @@ async def resultforControl(ws):
         else:
             print("Y pixal OK")
         
-    if Xmax-Xmin > 1536:
-        if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
+    if Xmax-Xmin > 256:
+        if Ymax-Ymin > 192: #座標面積在整個鏡頭的80%以上就直走
             if IsSteady == False:
                 print("!")
                 await ws.send(WebsocketMsg(NAME, {"toSerial":

@@ -12,14 +12,14 @@ from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
 import time
-normalSize = (320, 240)
+normalSize = (640, 480)
 lowresSize = (320, 240)
 
 rectangles = []
 Detectnum = 0
 IsSteady = False
 NAME = 'picam_recog.py'
-modelPath = "./model/model2_edgetpu.tflite"
+modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
@@ -50,9 +50,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = None
     
     start_time = time.time()
-    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-    interpreter = tflite.Interpreter(model_path=model,
-        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
+    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    # interpreter = tflite.Interpreter(model_path=model,
+    #     experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
     # interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
