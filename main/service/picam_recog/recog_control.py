@@ -12,7 +12,7 @@ from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
 import time
-normalSize = (640, 480)
+normalSize = (720, 480)
 lowresSize = (320, 240)
 
 rectangles = []
@@ -199,7 +199,7 @@ async def recognitionLoop(recoResult, ws):
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.7)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
