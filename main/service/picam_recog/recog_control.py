@@ -12,14 +12,14 @@ from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
 import time
-normalSize = (1920, 1080)
+normalSize = (960, 540)
 lowresSize = (320, 240)
 
 rectangles = []
 Detectnum = 0
 IsSteady = False
 NAME = 'picam_recog.py'
-modelPath = "./model/model_quant.tflite"
+modelPath = "./model/model2_edgetpu.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
@@ -48,40 +48,33 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = ReadLabelFile(label)
     else:
         labels = None
+    
     start_time = time.time()
-    interpreter = tflite.Interpreter(
-        model_path=model,
-        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')]
-    )
+    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     height = input_details[0]['shape'][1]
     width = input_details[0]['shape'][2]
+    floating_model = False
+    if input_details[0]['dtype'] == np.float32:
+        floating_model = True
 
-    input_type = input_details[0]['dtype']
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    picture = cv2.resize(rgb, (width, height))
+    picture = cv2.resize(rgb, (width, height)) 
     end_time = time.time()
     processing_time = end_time - start_time
     print(f"模型辨識時間: {processing_time:.4f} seconds")
-    # Check if the model uses INT8
-    if input_type == np.int8:
-        # Quantize the input data (from 0 to 255 to -128 to 127)
-        input_scale, input_zero_point = input_details[0]['quantization']
-        input_data = np.expand_dims(picture, axis=0).astype(np.int8)
-        input_data = (input_data / input_scale + input_zero_point).astype(np.int8)
-    else:
-        # For float models, normalize the input
-        floating_model = input_type == np.float32
-        input_data = np.expand_dims(picture, axis=0).astype(np.float32)
-        if floating_model:
-            input_data = (input_data - 127.5) / 127.5
+
+    input_data = np.expand_dims(picture, axis=0)
+    if floating_model:
+        input_data = (np.float32(input_data) - 127.5) / 127.5
 
     interpreter.set_tensor(input_details[0]['index'], input_data)
-
     interpreter.invoke()
+
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
     detected_classes = interpreter.get_tensor(output_details[3]['index'])
     detected_scores = interpreter.get_tensor(output_details[0]['index'])
@@ -89,7 +82,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     num_boxes = int(num_boxes[0])
     print("new detect")
-
+    
     for i in range(num_boxes):
         box = detected_boxes[0][i]
         top, left, bottom, right = box
@@ -118,7 +111,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
-
     print(Detectnum)
 
     if Detectnum >= 5:
@@ -127,7 +119,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         rectangles = []
     else:
         print("controlFun not implemented")
-    return rgb  # Return the resized RGB image for saving later
+    return rgb  
 
 async def resultforControl(ws):
     Xmin = 0
