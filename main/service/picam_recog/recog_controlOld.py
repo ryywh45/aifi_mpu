@@ -50,7 +50,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = None
     start_time = time.time()
     # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
-    interpreter = edgetpu.make_interpreter(model)
+    interpreter = tflite.Interpreter(model_path=model,
+        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
+    # interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
     input_details = interpreter.get_input_details()

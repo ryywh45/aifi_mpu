@@ -19,7 +19,7 @@ rectangles = []
 Detectnum = 0
 IsSteady = False
 NAME = 'picam_recog.py'
-modelPath = "./model/model2.tflite"
+modelPath = "./model/model2_edgetpu.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
@@ -50,7 +50,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = None
     
     start_time = time.time()
-    interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    # interpreter = tflite.Interpreter(model_path=model, num_threads=4)
+    interpreter = tflite.Interpreter(model_path=model,
+        experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
     # interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
@@ -139,13 +141,13 @@ async def resultforControl(ws):
         Ymax = Ymax / len(rectangles)
     Xmid = (Xmin + Xmax) / 2
     Ymid = (Ymin + Ymax) / 2
-    if Xmax-Xmin <= 1536: #1536  80%的值都改成變數
-        if Xmid < 960:
+    if Xmax-Xmin <= 256: #1536  80%的值都改成變數
+        if Xmid < 160:
             print("R")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("R"), ord("1"), 0, 0]}).to_json())
-        elif Xmid > 960:
+        elif Xmid > 160:
             print("L")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -153,8 +155,8 @@ async def resultforControl(ws):
         else:
             print("X pixal OK")
     
-    if Ymax-Ymin <= 864:
-        if Ymid < 540:
+    if Ymax-Ymin <= 192:
+        if Ymid < 120:
             print("D")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -167,8 +169,8 @@ async def resultforControl(ws):
         else:
             print("Y pixal OK")
         
-    if Xmax-Xmin > 1536:
-        if Ymax-Ymin > 864: #座標面積在整個鏡頭的80%以上就直走
+    if Xmax-Xmin > 256:
+        if Ymax-Ymin > 192: #座標面積在整個鏡頭的80%以上就直走
             if IsSteady == False:
                 print("!")
                 await ws.send(WebsocketMsg(NAME, {"toSerial":
