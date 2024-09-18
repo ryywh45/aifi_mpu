@@ -48,8 +48,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         labels = ReadLabelFile(label)
     else:
         labels = None
-    
-    start_time = time.time()
     interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     # interpreter = tflite.Interpreter(model_path=model,
     #     experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
@@ -66,9 +64,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     picture = cv2.resize(rgb, (width, height)) 
-    end_time = time.time()
-    processing_time = end_time - start_time
-    print(f"模型辨識時間: {processing_time:.4f} seconds")
+    
 
     input_data = np.expand_dims(picture, axis=0)
     if floating_model:
@@ -121,6 +117,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         rectangles = []
     else:
         print("controlFun not implemented")
+    end_time = time.time()
+    processing_time = end_time - start_time
+    print(f"模型辨識時間: {processing_time:.4f} seconds")
     return rgb  
 
 async def resultforControl(ws):
@@ -195,10 +194,11 @@ async def recognitionLoop(recoResult, ws):
 
     try:
         while True:
+            start_time = time.time()
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.5)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
