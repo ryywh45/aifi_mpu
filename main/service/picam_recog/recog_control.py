@@ -12,7 +12,7 @@ from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
 import time
-normalSize = (960, 540)
+normalSize = (320, 240)
 lowresSize = (320, 240)
 
 rectangles = []
