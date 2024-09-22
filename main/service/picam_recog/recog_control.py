@@ -143,13 +143,13 @@ async def resultforControl(ws):
         Ymax = Ymax / len(rectangles)
     Xmid = (Xmin + Xmax) / 2
     Ymid = (Ymin + Ymax) / 2
-    if Xmax-Xmin <= 256: #1536  80%的值都改成變數
-        if Xmid < 160:
+    if Xmax-Xmin <= 576: #1536  80%的值都改成變數
+        if Xmid < 360:
             print("R")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("R"), ord("1"), 0, 0]}).to_json())
-        elif Xmid > 160:
+        elif Xmid > 360:
             print("L")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -157,13 +157,13 @@ async def resultforControl(ws):
         else:
             print("X pixal OK")
     
-    if Ymax-Ymin <= 192:
-        if Ymid < 120:
+    if Ymax-Ymin <= 384:
+        if Ymid < 240:
             print("D")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("D"), 0, 0, 0]}).to_json())
-        elif Ymid > 540:
+        elif Ymid > 240:
             print("U")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -171,8 +171,8 @@ async def resultforControl(ws):
         else:
             print("Y pixal OK")
         
-    if Xmax-Xmin > 256:
-        if Ymax-Ymin > 192: #座標面積在整個鏡頭的80%以上就直走
+    if Xmax-Xmin > 576:
+        if Ymax-Ymin > 384: #座標面積在整個鏡頭的80%以上就直走
             if IsSteady == False:
                 print("!")
                 await ws.send(WebsocketMsg(NAME, {"toSerial":
