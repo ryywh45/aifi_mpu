@@ -18,6 +18,7 @@ lowresSize = (320, 240)
 
 rectangles = []
 Detectnum = 0
+Nothingnum = 0
 IsSteady = False
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
@@ -112,9 +113,15 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
-    print(Detectnum)
+        else:
+            Nothingnum += 1
+    print(f"Nothingnum:{Nothingnum}")
+    print(f"Detectnum:{Detectnum}")
+    
+    if Nothingnum >= 3:
+        Nothingnum = 0
 
-    if Detectnum >= 5:
+    if Detectnum >= 3:
         await resultforControl(ws)
         Detectnum = 0
         rectangles = []
@@ -144,12 +151,12 @@ async def resultforControl(ws):
     Xmid = (Xmin + Xmax) / 2
     Ymid = (Ymin + Ymax) / 2
     if Xmax-Xmin <= 576: #1536  80%的值都改成變數
-        if Xmid < 360:
+        if Xmid < 300: #360-60 要偏離太多才轉
             print("R")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("R"), ord("1"), 0, 0]}).to_json())
-        elif Xmid > 360:
+        elif Xmid > 420: #360+60
             print("L")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -158,12 +165,12 @@ async def resultforControl(ws):
             print("X pixal OK")
     
     if Ymax-Ymin <= 384:
-        if Ymid < 240:
+        if Ymid < 200: #240-40 要偏離太多才轉
             print("D")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("D"), 0, 0, 0]}).to_json())
-        elif Ymid > 240:
+        elif Ymid > 280: #240+40 
             print("U")
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
