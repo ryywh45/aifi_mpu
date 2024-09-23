@@ -45,7 +45,7 @@ def DrawRectangles(request):
                 print("Invalid rectangle:", rect) 
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
-    global rectangles, Detectnum
+    global rectangles, Detectnum, Nothingnum
     if label:
         labels = ReadLabelFile(label)
     else:
