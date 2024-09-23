@@ -18,7 +18,6 @@ lowresSize = (320, 240)
 
 rectangles = []
 Detectnum = 0
-Nothingnum = 0
 IsSteady = False
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
@@ -45,7 +44,7 @@ def DrawRectangles(request):
                 print("Invalid rectangle:", rect) 
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
-    global rectangles, Detectnum, Nothingnum
+    global rectangles, Detectnum
     if label:
         labels = ReadLabelFile(label)
     else:
@@ -113,13 +112,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
-        else:
-            Nothingnum += 1
     print(f"Nothingnum:{Nothingnum}")
     print(f"Detectnum:{Detectnum}")
-    
-    if Nothingnum >= 3:
-        Nothingnum = 0
 
     if Detectnum >= 3:
         await resultforControl(ws)
