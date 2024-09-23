@@ -114,7 +114,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             rectangles.append([xmin, ymin, xmax, ymax])
     print(f"Detectnum:{Detectnum}")
 
-    if Detectnum >= 3:
+    if Detectnum >= 1:
         await resultforControl(ws)
         Detectnum = 0
         rectangles = []
