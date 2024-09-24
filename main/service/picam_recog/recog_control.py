@@ -120,6 +120,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     print(f"Detectnum:{Detectnum}")
     print(f"Nothingnum:{Nothingnum}")
     if Nothingnum >= 29:
+        print("Nothing R1")
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("1"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
