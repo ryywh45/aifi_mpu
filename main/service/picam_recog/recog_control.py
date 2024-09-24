@@ -118,12 +118,13 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
     print(f"Detectnum:{Detectnum}")
+    print(f"Nothingnum:{Nothingnum}")
     if Nothingnum >= 29:
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("1"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
         Nothingnum = 0
-        
+
     if Detectnum >= 1:
         await resultforControl(ws)
         Detectnum = 0
@@ -214,7 +215,7 @@ async def resultforControl(ws):
         else:
             print("Steady Already")
         
-    if Xmax-Xmin > 612 and Ymax-Ymin > 408: #座標面積在整個鏡頭的85%以上就微小擺動直走
+    if Xmax-Xmin > 576 and Ymax-Ymin > 384: #座標面積在整個鏡頭的80%以上就微小擺動直走
         if IsSteady == False:
             print("3")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
