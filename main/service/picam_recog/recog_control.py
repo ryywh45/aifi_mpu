@@ -19,6 +19,8 @@ lowresSize = (320, 240)
 rectangles = []
 Detectnum = 0
 IsSteady = False
+already_up = False
+already_down = False
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
@@ -130,7 +132,7 @@ async def resultforControl(ws):
     Ymin = 0
     Xmax = 0
     Ymax = 0
-    global IsSteady
+    global IsSteady ,already_up , already_down
     for i in range(len(rectangles)):
         Xmin += rectangles[i][0]
         Ymin += rectangles[i][1]
@@ -143,44 +145,74 @@ async def resultforControl(ws):
         Ymax = Ymax / len(rectangles)
     Xmid = (Xmin + Xmax) / 2
     Ymid = (Ymin + Ymax) / 2
-    if Xmax-Xmin <= 576: #1536  80%的值都改成變數
-        if Xmid < 300: #360-60 要偏離太多才轉
-            print("R")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("R"), ord("1"), 0, 0]}).to_json())
-        elif Xmid > 420: #360+60
-            print("L")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("L"), ord("1"), 0, 0]}).to_json())
-        else:
-            print("X pixal OK")
+    # 設定穩定區間
+    X_steadyzone_min = 280
+    X_steadyzone_max = 440
+    Y_steadyzone_min = 180
+    Y_steadyzone_max = 300
+
+    x_adjusted = False
+
+    if Xmid < X_steadyzone_min: 
+        print("L")
+        IsSteady = False
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("L"), ord("1"), 0, 0]}).to_json())
+        x_adjusted = True
+    elif Xmid > X_steadyzone_max: 
+        print("R")
+        IsSteady = False
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("R"), ord("1"), 0, 0]}).to_json())
+        x_adjusted = True
     
-    if Ymax-Ymin <= 384:
-        if Ymid < 200: #240-40 要偏離太多才轉
-            print("D")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("D"), 0, 0, 0]}).to_json())
-        elif Ymid > 280: #240+40 
-            print("U")
+    if x_adjusted:
+        await asyncio.sleep(0.1)
+    
+    if Ymid < Y_steadyzone_min: 
+        print("U")
+        if already_up == False:
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("U"), 0, 0, 0]}).to_json())
+            already_up = True
         else:
-            print("Y pixal OK")
+            print("Already Up")
+            
+    elif Ymid > Y_steadyzone_max:
+        print("D")
+        if already_down == False:
+            IsSteady = False
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("D"), 0, 0, 0]}).to_json())
+            already_down = True
+        else:
+            print("Already Down")
+    else:
+        already_up = False
+        already_down = False
+        print("Balance")
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("M"), 0, 0, 0]}).to_json())
+
+    if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
+        if IsSteady == False:
+            print("Steady - No Movement")
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("!"), 0, 0, 0]}).to_json())
+            IsSteady = True
+        else:
+            print("Steady Already")
         
-    if Xmax-Xmin > 576:
-        if Ymax-Ymin > 384: #座標面積在整個鏡頭的80%以上就直走
-            if IsSteady == False:
-                print("!")
-                await ws.send(WebsocketMsg(NAME, {"toSerial":
-                    [ord("!"), 0, 0, 0]}).to_json())
-                IsSteady = True
-            else:
-                print("Already !")
-    print("already send command!")
+    if Xmax-Xmin > 612 and Ymax-Ymin > 408: #座標面積在整個鏡頭的85%以上就微小擺動直走
+        if IsSteady == False:
+            print("!")
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("!"), 0, 0, 0]}).to_json())
+            IsSteady = True
+        else:
+            print("Already !")
+    # print("already send command!")
             
 
 
