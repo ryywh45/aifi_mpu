@@ -21,6 +21,7 @@ Detectnum = 0
 IsSteady = False
 already_up = False
 already_down = False
+Nothingnum = 0
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
@@ -46,7 +47,7 @@ def DrawRectangles(request):
                 print("Invalid rectangle:", rect) 
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
-    global rectangles, Detectnum
+    global rectangles, Detectnum ,Nothingnum
     if label:
         labels = ReadLabelFile(label)
     else:
@@ -91,8 +92,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         top, left, bottom, right = box
         classId = int(detected_classes[0][i])
         score = detected_scores[0][i]
+        Nothingnum += 1
         if score > 0.7:
             Detectnum += 1
+            Nothingnum -= 10
             ymin = top * normalSize[1]
             xmin = left * normalSize[0]
             ymax = bottom * normalSize[1]
@@ -115,7 +118,12 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
     print(f"Detectnum:{Detectnum}")
-
+    if Nothingnum >= 29:
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("R"), ord("1"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
+        Nothingnum = 0
+        
     if Detectnum >= 1:
         await resultforControl(ws)
         Detectnum = 0
@@ -158,12 +166,14 @@ async def resultforControl(ws):
         IsSteady = False
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("L"), ord("1"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
         x_adjusted = True
     elif Xmid > X_steadyzone_max: 
         print("R")
         IsSteady = False
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("1"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
         x_adjusted = True
     
     if x_adjusted:
@@ -206,9 +216,12 @@ async def resultforControl(ws):
         
     if Xmax-Xmin > 612 and Ymax-Ymin > 408: #座標面積在整個鏡頭的85%以上就微小擺動直走
         if IsSteady == False:
-            print("!")
+            print("3")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("!"), 0, 0, 0]}).to_json())
+                [ord("3"), 0, 0, 0]}).to_json())
+            await asyncio.sleep(0.1)
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("2"), 0, 0, 0]}).to_json())
             IsSteady = True
         else:
             print("Already !")
