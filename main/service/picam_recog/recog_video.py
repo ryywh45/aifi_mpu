@@ -30,7 +30,7 @@ labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
 
-fourcc = cv2.VideoWriter_fourcc(*'H264')
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = None  
 command_history = []
 def save_command_history_to_csv(filename='command_history.csv'):
@@ -136,11 +136,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                     current_time = datetime.now()
                     # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
                     formatted_time = current_time
-                    cv2.putText(picture, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                    cv2.rectangle(picture, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
-                    cv2.putText(picture, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-                    out.write(picture)  
+                    cv2.putText(image, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                    cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
+                    cv2.putText(image, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2) 
             else:
                 print(f"  Score = {score}")
                 result.score = score
@@ -293,6 +291,8 @@ async def recognitionLoop(recoResult, ws):
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
+            if out is not None:
+                out.write(grey)
             await asyncio.sleep(0.8)
     except KeyboardInterrupt:
         print("Exiting...")
