@@ -279,7 +279,8 @@ async def recognitionLoop(recoResult, ws):
     picam2.configure(config)
 
  
-    out = cv2.VideoWriter(f'{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4', fourcc, 20.0, lowresSize)
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4", fourcc, 20.0, lowresSize)
+
 
     stride = picam2.stream_configuration("lores")["stride"]
     picam2.post_callback = DrawRectangles
