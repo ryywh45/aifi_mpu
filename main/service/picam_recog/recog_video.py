@@ -291,14 +291,18 @@ async def recognitionLoop(recoResult, ws):
     frame_size = (lowresSize[0], lowresSize[1])
 
     # 初始化 VideoWriter
-    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 10.0, frame_size)  # 修改此處的FPS為10.0
 
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
         return
-    
+
+    last_time = time.time()  # 記錄上次處理的時間
     try:
         while True:
+            current_time = time.time()
+            elapsed_time = current_time - last_time  # 計算經過的時間
+
             # 捕捉影像緩衝區
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
@@ -315,8 +319,12 @@ async def recognitionLoop(recoResult, ws):
                 print(f"Frame size: {frame_with_detections.shape}")
 
                 out.write(frame_with_detections)  # 寫入影像到影片檔案
-                
-            await asyncio.sleep(0.8)
+
+            # 控制帧率，這裡設置為每秒 10 張影像
+            if elapsed_time >= 0.1:  # 如果經過了 0.1 秒
+                last_time = current_time  # 更新處理時間
+            else:
+                await asyncio.sleep(0.1 - elapsed_time)  # 等待直到到達下一幀時間
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
