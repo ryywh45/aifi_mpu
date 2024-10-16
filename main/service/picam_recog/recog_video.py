@@ -281,3 +281,8 @@ async def recognitionLoop(recoResult, ws):
             out.release()  
         save_command_history_to_csv()
         print("影片已保存")
+
+
+def stopRecognition():
+    global should_stop
+    should_stop = True
