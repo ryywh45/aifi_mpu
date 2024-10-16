@@ -325,10 +325,10 @@ async def recognitionLoop(recoResult, ws):
 
             # 根據模型處理時間調整等待時間
             # 如果模型處理時間超過 0.1 秒，則直接等待 1.1 秒
-            if processing_time < 1:
-                await asyncio.sleep(1 - processing_time)  # 等待直到下次處理的時間間隔為 1.1 秒
+            if processing_time < 1.1:
+                await asyncio.sleep(1.1 - processing_time)  # 等待直到下次處理的時間間隔為 1.1 秒
             else:
-                await asyncio.sleep(0.1)  # 如果處理時間超過 1.1 秒，則等 0.1 秒
+                await asyncio.sleep(0.5)  # 如果處理時間超過 1.1 秒，則等 0.1 秒
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
