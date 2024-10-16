@@ -132,7 +132,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 result.label = labels[classId]
                 result.score = score
                 if out is not None:
-                    current_time = datetime.datetime.now()
+                    current_time = datetime.now()
                     formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
                     cv2.putText(picture, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                     cv2.rectangle(picture, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
@@ -188,7 +188,7 @@ async def resultforControl(ws):
     Xmid = (Xmin + Xmax) / 2
     Ymid = (Ymin + Ymax) / 2
     
-    current_time = datetime.datetime.now()
+    current_time = datetime.now()
     formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
     coordinates_message = f"X:{Xmin}~{Xmax}；Y:{Ymin}~{Ymax}"
     X_steadyzone_min = 280
