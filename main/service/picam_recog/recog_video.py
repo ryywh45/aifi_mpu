@@ -283,10 +283,11 @@ async def recognitionLoop(recoResult, ws):
 
     picam2.start()
 
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 使用MP4編碼格式
-    frame_size = (lowresSize[0], lowresSize[1])  # 設定正確的影格大小
+    # 嘗試使用不同的影片編碼格式
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 你可以嘗試 'XVID' 或 'mp4v'，根據系統支持的編碼格式
+    frame_size = (lowresSize[0], lowresSize[1])
 
-    # 初始化 VideoWriter，設定影片檔名、編碼、FPS 和影格大小
+    # 初始化 VideoWriter
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4", fourcc, 20.0, frame_size)
 
     if not out.isOpened():
@@ -295,15 +296,23 @@ async def recognitionLoop(recoResult, ws):
     
     try:
         while True:
+            # 捕捉緩衝區的影像
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             
+            # 打印緩衝區大小以確認是否有影像數據
+            print(f"Capture buffer shape: {grey.shape}")
+
             # 獲取帶有檢測框的影像
             frame_with_detections = await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
             
             if frame_with_detections is not None:
-                # 調整影像大小，確保符合 VideoWriter 的設定
+                # 調整影像大小並寫入影片
                 frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+                
+                # 打印影像尺寸以確認影像是否正確
+                print(f"Frame size: {frame_with_detections.shape}")
+
                 out.write(frame_with_detections)  # 寫入影像到影片檔案
                 
             await asyncio.sleep(0.8)
@@ -315,7 +324,6 @@ async def recognitionLoop(recoResult, ws):
             out.release()  # 確保影片檔案被正確關閉並保存
         save_command_history_to_csv()
         print("影片已保存")
-
 
 
 def stopRecognition():
