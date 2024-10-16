@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from picamera2 import MappedArray, Picamera2
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import FfmpegOutput
 import asyncio
 import websockets.client as websockets
 from communication.message import ClientToServer as WebsocketMsg
@@ -33,6 +35,20 @@ should_stop = True
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = None  
 command_history = []
+
+def picam_init():
+    picam2 = Picamera2()
+    vidConf = picam2.create_video_configuration(
+        main={"size": (1280, 720), "format": "RGB888"},
+        lores={"size": (320, 240), "format": "YUV420"},
+        display="lores",
+        encode="lores",
+    )
+    picam2.configure(vidConf)
+    encoder = H264Encoder(bitrate=None, framerate=30)
+    encoder.output = FfmpegOutput("./videos/temp.mp4")
+    return picam2, encoder, vidConf
+
 def save_command_history_to_csv(filename='command_history.csv'):
 
     filename = os.path.expanduser(filename)
@@ -167,7 +183,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     end_time = time.time()
     processing_time = end_time - start_time
     print(f"模型辨識時間: {processing_time:.4f} seconds")
-    return image
+    return rgb  
 
 async def resultforControl(ws):
     Xmin = 0
@@ -278,27 +294,33 @@ async def recognitionLoop(recoResult, ws):
                                                  lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
 
- 
-    out = cv2.VideoWriter(f'{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4', fourcc, 20.0, lowresSize)
-
     stride = picam2.stream_configuration("lores")["stride"]
     picam2.post_callback = DrawRectangles
 
+    encoder = H264Encoder(bitrate=None, framerate=30)
+    encoder.output = FfmpegOutput("./videos/temp.mp4")
+    picam2.start_encoder(encoder)
+    picam2.switch_mode(config)
     picam2.start()
 
     try:
         while True:
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            frame_with_detections = await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
-            out.write(frame_with_detections)
+            await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
+            if out is not None:
+                out.write(buffer)
             await asyncio.sleep(0.8)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:
         picam2.stop()
-        if out is not None:
-            out.release()  
+        picam2.stop_encoder()
+        encoder.output.output_filename = (
+            f"./videos/{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4"
+            )
+        encoder.output.start()
+        print(f"正在儲存影片: {encoder.output.output_filename}")
         save_command_history_to_csv()
         print("影片已保存")
 
