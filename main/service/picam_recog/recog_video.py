@@ -276,7 +276,7 @@ async def resultforControl(ws):
 
 
 async def recognitionLoop(recoResult, ws):
-    global out  
+    global out
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
@@ -291,25 +291,28 @@ async def recognitionLoop(recoResult, ws):
     frame_size = (lowresSize[0], lowresSize[1])
 
     # 初始化 VideoWriter
-    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 10.0, frame_size)  # 修改此處的FPS為10.0
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
 
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
         return
-
-    last_time = time.time()  # 記錄上次處理的時間
+    
     try:
         while True:
-            current_time = time.time()
-            elapsed_time = current_time - last_time  # 計算經過的時間
-
             # 捕捉影像緩衝區
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
 
             # 將灰階影像轉換為彩色影像（BGR格式）
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+            
+            start_time = time.time()
             frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
+            end_time = time.time()
+
+            # 計算模型處理時間
+            processing_time = end_time - start_time
+            print(f"模型辨識時間: {processing_time:.4f} seconds")
 
             if frame_with_detections is not None:
                 # 調整影像大小並寫入影片
@@ -320,11 +323,12 @@ async def recognitionLoop(recoResult, ws):
 
                 out.write(frame_with_detections)  # 寫入影像到影片檔案
 
-            # 控制帧率，這裡設置為每秒 10 張影像
-            if elapsed_time >= 0.1:  # 如果經過了 0.1 秒
-                last_time = current_time  # 更新處理時間
+            # 根據模型處理時間調整等待時間
+            # 如果模型處理時間超過 0.1 秒，則直接等待 1.1 秒
+            if processing_time < 1:
+                await asyncio.sleep(1 - processing_time)  # 等待直到下次處理的時間間隔為 1.1 秒
             else:
-                await asyncio.sleep(0.1 - elapsed_time)  # 等待直到到達下一幀時間
+                await asyncio.sleep(0.1)  # 如果處理時間超過 1.1 秒，則等 0.1 秒
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
@@ -333,6 +337,7 @@ async def recognitionLoop(recoResult, ws):
             out.release()  # 確保影片檔案被正確關閉並保存
         save_command_history_to_csv()
         print("影片已保存")
+
 
 
 def stopRecognition():
