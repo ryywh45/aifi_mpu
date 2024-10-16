@@ -12,7 +12,7 @@ from communication.message import ClientToServer as WebsocketMsg
 # from pycoral.adapters import classify
 import time
 import csv
-import datetime
+from datetime import datetime
 import os
 
 normalSize = (720, 480)  
@@ -46,11 +46,10 @@ def save_command_history_to_csv(filename='command_history.csv'):
 
             if isinstance(timestamp, str):
                 try:
-
                     timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
                 except ValueError:
                     print(f"Timestamp format error for command '{command}': {timestamp}")
-                    continue 
+                    continue  
             
             formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
             writer.writerow([command, formatted_timestamp, coordinates])
