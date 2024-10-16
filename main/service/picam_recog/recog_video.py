@@ -288,7 +288,7 @@ async def recognitionLoop(recoResult, ws):
     frame_size = (lowresSize[0], lowresSize[1])
 
     # 初始化 VideoWriter
-    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4", fourcc, 20.0, frame_size)
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
 
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
