@@ -33,7 +33,7 @@ should_stop = True
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  
 out = None  
 command_history = []
-def save_command_history_to_csv(filename=r'~/command_history.csv'):
+def save_command_history_to_csv(filename='command_history.csv'):
 
     filename = os.path.expanduser(filename)
 
@@ -43,6 +43,15 @@ def save_command_history_to_csv(filename=r'~/command_history.csv'):
         writer.writerow(["Command", "Timestamp", "Coordinates"])
 
         for command, timestamp, coordinates in command_history:
+
+            if isinstance(timestamp, str):
+                try:
+
+                    timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    print(f"Timestamp format error for command '{command}': {timestamp}")
+                    continue 
+            
             formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
             writer.writerow([command, formatted_timestamp, coordinates])
 
