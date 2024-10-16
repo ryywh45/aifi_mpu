@@ -173,6 +173,7 @@ async def resultforControl(ws):
     
     current_time = datetime.datetime.now()
     formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+    coordinates_message = f"X:{Xmin}~{Xmax}；Y:{Ymin}~{Ymax}"
     X_steadyzone_min = 280
     X_steadyzone_max = 440
     Y_steadyzone_min = 180
@@ -184,7 +185,7 @@ async def resultforControl(ws):
         IsSteady = False
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("L"), ord("1"), 0, 0]}).to_json())
-        command_history.append(("L", formatted_time))
+        command_history.append(("L", formatted_time, coordinates_message))
         await asyncio.sleep(0.1)
         x_adjusted = True
     elif Xmid > X_steadyzone_max: 
@@ -192,7 +193,7 @@ async def resultforControl(ws):
         IsSteady = False
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("1"), 0, 0]}).to_json())
-        command_history.append(("R", formatted_time))
+        command_history.append(("R", formatted_time, coordinates_message))
         await asyncio.sleep(0.1)
         x_adjusted = True
 
@@ -205,7 +206,7 @@ async def resultforControl(ws):
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("U"), 0, 0, 0]}).to_json())
-            command_history.append(("U", formatted_time))
+            command_history.append(("U", formatted_time, coordinates_message))
             already_up = True
         else:
             print("Already Up")
@@ -215,7 +216,7 @@ async def resultforControl(ws):
             IsSteady = False
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("D"), 0, 0, 0]}).to_json())
-            command_history.append(("D", formatted_time))
+            command_history.append(("D", formatted_time, coordinates_message))
             already_down = True
         else:
             print("Already Down")
@@ -225,14 +226,14 @@ async def resultforControl(ws):
         print("Balance")
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("M"), 0, 0, 0]}).to_json())
-        command_history.append(("M", formatted_time))
+        command_history.append(("M", formatted_time, coordinates_message))
 
     if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
         if IsSteady == False:
             print("Steady - No Movement")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("!"), 0, 0, 0]}).to_json())
-            command_history.append(("!", formatted_time))
+                [ord("X"), 0, 0, 0]}).to_json())
+            command_history.append(("X", formatted_time, coordinates_message))
             IsSteady = True
         else:
             print("Steady Already")
@@ -242,11 +243,11 @@ async def resultforControl(ws):
             print("3")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("3"), 0, 0, 0]}).to_json())
-            command_history.append(("3", formatted_time))
+            command_history.append(("3", formatted_time, coordinates_message))
             await asyncio.sleep(0.1)
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("2"), 0, 0, 0]}).to_json())
-            command_history.append(("2", formatted_time))
+            command_history.append(("2", formatted_time, coordinates_message))
             IsSteady = True
         else:
             print("Already !")
