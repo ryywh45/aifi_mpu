@@ -3,8 +3,6 @@ import cv2
 import numpy as np
 import tflite_runtime.interpreter as tflite
 from picamera2 import MappedArray, Picamera2
-from picamera2.encoders import H264Encoder
-from picamera2.outputs import FfmpegOutput
 import asyncio
 import websockets.client as websockets
 from communication.message import ClientToServer as WebsocketMsg
@@ -35,20 +33,6 @@ should_stop = True
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = None  
 command_history = []
-
-def picam_init():
-    picam2 = Picamera2()
-    vidConf = picam2.create_video_configuration(
-        main={"size": (1280, 720), "format": "RGB888"},
-        lores={"size": (320, 240), "format": "YUV420"},
-        display="lores",
-        encode="lores",
-    )
-    picam2.configure(vidConf)
-    encoder = H264Encoder(bitrate=None, framerate=30)
-    encoder.output = FfmpegOutput("./videos/temp.mp4")
-    return picam2, encoder, vidConf
-
 def save_command_history_to_csv(filename='command_history.csv'):
 
     filename = os.path.expanduser(filename)
@@ -112,7 +96,12 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if input_details[0]['dtype'] == np.float32:
         floating_model = True
 
-    rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    # 檢查影像通道數，確保只有一個通道時才進行灰階轉換
+    if len(image.shape) == 2:  # 如果是灰階影像
+        rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    else:
+        rgb = image  # 如果已經是彩色影像，直接使用
+
     picture = cv2.resize(rgb, (width, height)) 
 
     input_data = np.expand_dims(picture, axis=0)
@@ -139,10 +128,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         if score > 0.7:
             Detectnum += 1
             Nothingnum -= 10
-            ymin = top * normalSize[1]
-            xmin = left * normalSize[0]
-            ymax = bottom * normalSize[1]
-            xmax = right * normalSize[0]
+            ymin = top * lowresSize[1]
+            xmin = left * lowresSize[0]
+            ymax = bottom * lowresSize[1]
+            xmax = right * lowresSize[0]
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
@@ -150,7 +139,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 result.score = score
                 if out is not None:
                     current_time = datetime.now()
-                    # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
                     formatted_time = current_time
                     cv2.putText(image, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                     cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
@@ -183,7 +171,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     end_time = time.time()
     processing_time = end_time - start_time
     print(f"模型辨識時間: {processing_time:.4f} seconds")
-    return rgb  
+    return image
 
 async def resultforControl(ws):
     Xmin = 0
@@ -288,6 +276,7 @@ async def resultforControl(ws):
 
 
 async def recognitionLoop(recoResult, ws):
+    global out
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
@@ -296,30 +285,59 @@ async def recognitionLoop(recoResult, ws):
     stride = picam2.stream_configuration("lores")["stride"]
     picam2.post_callback = DrawRectangles
 
-    encoder = H264Encoder(bitrate=None, framerate=30)
-    encoder.output = FfmpegOutput("./videos/temp.mp4")
-    picam2.start_encoder(encoder)
-    picam2.switch_mode(config)
     picam2.start()
 
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用 'XVID' 編碼格式
+    frame_size = (lowresSize[0], lowresSize[1])
+
+    # 初始化 VideoWriter
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
+
+    if not out.isOpened():
+        print("VideoWriter 無法開啟。")
+        return
+    
     try:
         while True:
+            # 捕捉影像緩衝區
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
-            await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
-            await asyncio.sleep(0.8)
+            grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
+
+            # 將灰階影像轉換為彩色影像（BGR格式）
+            rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+            
+            start_time = time.time()
+            frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
+            end_time = time.time()
+
+            # 計算模型處理時間
+            processing_time = end_time - start_time
+            print(f"模型辨識時間: {processing_time:.4f} seconds")
+
+            if frame_with_detections is not None:
+                # 調整影像大小並寫入影片
+                frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+
+                # 打印影像尺寸以確認影像是否正確
+                print(f"Frame size: {frame_with_detections.shape}")
+
+                out.write(frame_with_detections)  # 寫入影像到影片檔案
+
+            # 根據模型處理時間調整等待時間
+            # 如果模型處理時間超過 0.1 秒，則直接等待 1.1 秒
+            if processing_time < 1.1:
+                await asyncio.sleep(1.1 - processing_time)  # 等待直到下次處理的時間間隔為 1.1 秒
+            else:
+                await asyncio.sleep(0.5)  # 如果處理時間超過 1.1 秒，則等 0.1 秒
     except KeyboardInterrupt:
-        print("Exiting...")
+        print("中斷執行...")
     finally:
         picam2.stop()
-        picam2.stop_encoder()
-        encoder.output.output_filename = (
-            f"./videos/{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4"
-            )
-        encoder.output.start()
-        print(f"正在儲存影片: {encoder.output.output_filename}")
+        if out is not None:
+            out.release()  # 確保影片檔案被正確關閉並保存
         save_command_history_to_csv()
         print("影片已保存")
+
 
 
 def stopRecognition():

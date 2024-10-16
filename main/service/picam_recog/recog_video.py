@@ -297,6 +297,10 @@ async def recognitionLoop(recoResult, ws):
         print("VideoWriter 無法開啟。")
         return
     
+    # 設定辨識時間間隔（每 1 秒辨識一次）
+    recognition_interval = 1.0  # 每 1 秒進行一次辨識
+    last_recognition_time = time.time()
+
     try:
         while True:
             # 捕捉影像緩衝區
@@ -305,30 +309,23 @@ async def recognitionLoop(recoResult, ws):
 
             # 將灰階影像轉換為彩色影像（BGR格式）
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-            
-            start_time = time.time()
-            frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
-            end_time = time.time()
 
-            # 計算模型處理時間
-            processing_time = end_time - start_time
-            print(f"模型辨識時間: {processing_time:.4f} seconds")
+            # 繼續錄影並寫入影片
+            frame_with_detections = rgb  # 預設直接使用捕捉到的影像
 
-            if frame_with_detections is not None:
-                # 調整影像大小並寫入影片
-                frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+            # 檢查是否需要進行辨識（根據時間間隔判斷）
+            current_time = time.time()
+            if current_time - last_recognition_time >= recognition_interval:
+                print("開始辨識...")
+                frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
+                last_recognition_time = current_time  # 更新辨識時間
 
-                # 打印影像尺寸以確認影像是否正確
-                print(f"Frame size: {frame_with_detections.shape}")
+            # 調整影像大小並寫入影片
+            frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+            out.write(frame_with_detections)  # 寫入影像到影片檔案
 
-                out.write(frame_with_detections)  # 寫入影像到影片檔案
-
-            # 根據模型處理時間調整等待時間
-            # 如果模型處理時間超過 0.1 秒，則直接等待 1.1 秒
-            if processing_time < 1.1:
-                await asyncio.sleep(1.1 - processing_time)  # 等待直到下次處理的時間間隔為 1.1 秒
-            else:
-                await asyncio.sleep(0.5)  # 如果處理時間超過 1.1 秒，則等 0.1 秒
+            # 控制影像錄製的頻率（例如每秒 30 幀）
+            await asyncio.sleep(1 / 30.0)  # 每秒錄製 30 幀
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
@@ -337,6 +334,7 @@ async def recognitionLoop(recoResult, ws):
             out.release()  # 確保影片檔案被正確關閉並保存
         save_command_history_to_csv()
         print("影片已保存")
+
 
 
 
