@@ -288,7 +288,6 @@ async def resultforControl(ws):
 
 
 async def recognitionLoop(recoResult, ws):
-    global out  
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
@@ -308,8 +307,6 @@ async def recognitionLoop(recoResult, ws):
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
-            if out is not None:
-                out.write(buffer)
             await asyncio.sleep(0.8)
     except KeyboardInterrupt:
         print("Exiting...")
