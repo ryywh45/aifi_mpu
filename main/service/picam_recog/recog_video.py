@@ -13,6 +13,7 @@ from communication.message import ClientToServer as WebsocketMsg
 import time
 import csv
 import datetime
+import os
 
 normalSize = (720, 480)  
 lowresSize = (320, 240)
@@ -32,14 +33,20 @@ should_stop = True
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')  
 out = None  
 command_history = []
-def save_command_history_to_csv(filename='command_history.csv'):
+def save_command_history_to_csv(filename=r'~/command_history.csv'):
+
+    filename = os.path.expanduser(filename)
+
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
 
         writer.writerow(["Command", "Timestamp", "Coordinates"])
 
         for command, timestamp, coordinates in command_history:
-            writer.writerow([command, timestamp, coordinates])
+            formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            writer.writerow([command, formatted_timestamp, coordinates])
+
+    print(f"Command history saved to {filename}")
 
 
 def ReadLabelFile(file_path):
