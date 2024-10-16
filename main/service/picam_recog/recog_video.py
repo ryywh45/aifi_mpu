@@ -34,12 +34,13 @@ out = None
 command_history = []
 def save_command_history_to_csv(filename='command_history.csv'):
     with open(filename, mode='w', newline='') as file:
-
         writer = csv.writer(file)
-        writer.writerow(["Command", "Timestamp"])
 
-        for command, timestamp in command_history:
-            writer.writerow([command, timestamp.strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow(["Command", "Timestamp", "Coordinates"])
+
+        for command, timestamp, coordinates in command_history:
+            writer.writerow([command, timestamp, coordinates])
+
 
 def ReadLabelFile(file_path):
     with open(file_path, 'r') as f:
