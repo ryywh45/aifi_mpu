@@ -279,7 +279,7 @@ async def recognitionLoop(recoResult, ws):
     picam2.configure(config)
 
  
-    out = cv2.VideoWriter('output_video.mp4', fourcc, 20.0, (720, 480))
+    out = cv2.VideoWriter('output_video.mp4', fourcc, 20.0, lowresSize)
 
     stride = picam2.stream_configuration("lores")["stride"]
     picam2.post_callback = DrawRectangles
@@ -292,8 +292,7 @@ async def recognitionLoop(recoResult, ws):
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
             if out is not None:
-                print("我好餓")
-                out.write(grey)
+                out.write(buffer)
             await asyncio.sleep(0.8)
     except KeyboardInterrupt:
         print("Exiting...")
