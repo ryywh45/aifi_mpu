@@ -30,7 +30,7 @@ labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
 
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')  
+fourcc = cv2.VideoWriter_fourcc(*'H264')
 out = None  
 command_history = []
 def save_command_history_to_csv(filename='command_history.csv'):
@@ -51,7 +51,8 @@ def save_command_history_to_csv(filename='command_history.csv'):
                     print(f"Timestamp format error for command '{command}': {timestamp}")
                     continue  
             
-            formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            # formatted_timestamp = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            formatted_timestamp = timestamp
             writer.writerow([command, formatted_timestamp, coordinates])
 
     print(f"Command history saved to {filename}")
@@ -133,7 +134,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 result.score = score
                 if out is not None:
                     current_time = datetime.now()
-                    formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+                    # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+                    formatted_time = current_time
                     cv2.putText(picture, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                     cv2.rectangle(picture, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
                     cv2.putText(picture, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
@@ -189,7 +191,8 @@ async def resultforControl(ws):
     Ymid = (Ymin + Ymax) / 2
     
     current_time = datetime.now()
-    formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+    # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+    formatted_time = current_time
     coordinates_message = f"X:{Xmin}~{Xmax}；Y:{Ymin}~{Ymax}"
     X_steadyzone_min = 280
     X_steadyzone_max = 440
@@ -242,8 +245,8 @@ async def resultforControl(ws):
         already_down = False
         print("Balance")
         await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("M"), 0, 0, 0]}).to_json())
-        command_history.append(("M", formatted_time, coordinates_message))
+            [ord("B"), 0, 0, 0]}).to_json())
+        command_history.append(("B", formatted_time, coordinates_message))
 
     if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
         if IsSteady == False:
@@ -278,7 +281,7 @@ async def recognitionLoop(recoResult, ws):
     picam2.configure(config)
 
  
-    out = cv2.VideoWriter('output_video.mp4', fourcc, 20.0, normalSize)
+    out = cv2.VideoWriter('output_video.mp4', fourcc, 20.0, (720, 480))
 
     stride = picam2.stream_configuration("lores")["stride"]
     picam2.post_callback = DrawRectangles
