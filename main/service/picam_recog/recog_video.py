@@ -278,25 +278,34 @@ async def recognitionLoop(recoResult, ws):
                                                  lores={"size": lowresSize, "format": "YUV420"})
     picam2.configure(config)
 
- 
-    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4", fourcc, 20.0, lowresSize)
-    if not out.isOpened():
-        print("VideoWriter failed to open.")
-
     stride = picam2.stream_configuration("lores")["stride"]
     picam2.post_callback = DrawRectangles
 
     picam2.start()
 
     try:
+        buffer = picam2.capture_buffer("lores")
+        grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
+        frame_with_detections = await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
+        
+        actual_size = (frame_with_detections.shape[1], frame_with_detections.shape[0])
+        
+        out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.mp4", fourcc, 20.0, actual_size)
+        
+        if not out.isOpened():
+            print("VideoWriter failed to open.")
+            return
+        
         while True:
             buffer = picam2.capture_buffer("lores")
-            grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
+            grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             frame_with_detections = await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
-            print(grey.shape)
-            frame_with_detections = cv2.resize(frame_with_detections, lowresSize)
+            
             if frame_with_detections is not None:
+
+                frame_with_detections = cv2.resize(frame_with_detections, actual_size)
                 out.write(frame_with_detections)
+                
             await asyncio.sleep(0.8)
     except KeyboardInterrupt:
         print("Exiting...")

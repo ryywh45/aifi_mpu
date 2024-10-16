@@ -6,7 +6,7 @@ from communication.message import ClientToServer as WebsocketMsg
 NAME = 'picam_recog.py'
 
 # from recog_control import recognitionLoop, stopRecognition
-from recog_video2 import recognitionLoop, stopRecognition
+from recog_video import recognitionLoop, stopRecognition
 @dataclass()
 class RecoResult:
     label = ""
