@@ -283,8 +283,7 @@ async def recognitionLoop(recoResult, ws):
 
     picam2.start()
 
-    # 嘗試使用不同的影片編碼格式
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 你可以嘗試 'XVID' 或 'mp4v'，根據系統支持的編碼格式
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用 'XVID' 編碼格式
     frame_size = (lowresSize[0], lowresSize[1])
 
     # 初始化 VideoWriter
@@ -296,20 +295,18 @@ async def recognitionLoop(recoResult, ws):
     
     try:
         while True:
-            # 捕捉緩衝區的影像
+            # 捕捉影像緩衝區
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-            
-            # 打印緩衝區大小以確認是否有影像數據
-            print(f"Capture buffer shape: {grey.shape}")
 
-            # 獲取帶有檢測框的影像
-            frame_with_detections = await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
-            
+            # 將灰階影像轉換為彩色影像（BGR格式）
+            rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+            frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
+
             if frame_with_detections is not None:
                 # 調整影像大小並寫入影片
                 frame_with_detections = cv2.resize(frame_with_detections, frame_size)
-                
+
                 # 打印影像尺寸以確認影像是否正確
                 print(f"Frame size: {frame_with_detections.shape}")
 
