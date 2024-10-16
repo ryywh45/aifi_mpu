@@ -96,7 +96,12 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if input_details[0]['dtype'] == np.float32:
         floating_model = True
 
-    rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    # 檢查影像通道數，確保只有一個通道時才進行灰階轉換
+    if len(image.shape) == 2:  # 如果是灰階影像
+        rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    else:
+        rgb = image  # 如果已經是彩色影像，直接使用
+
     picture = cv2.resize(rgb, (width, height)) 
 
     input_data = np.expand_dims(picture, axis=0)
@@ -134,7 +139,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 result.score = score
                 if out is not None:
                     current_time = datetime.now()
-                    # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
                     formatted_time = current_time
                     cv2.putText(image, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                     cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
