@@ -119,7 +119,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                     current_time = datetime.datetime.now()
                     formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
                     cv2.putText(picture, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-                    cv2.rectangle(picture, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+                    cv2.rectangle(picture, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
                     cv2.putText(picture, f"{labels[classId]}: {score:.2f}", (xmin, ymin-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                     out.write(picture)  
             else:
