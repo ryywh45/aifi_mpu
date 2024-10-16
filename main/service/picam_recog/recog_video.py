@@ -123,10 +123,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         if score > 0.7:
             Detectnum += 1
             Nothingnum -= 10
-            ymin = top * normalSize[1]
-            xmin = left * normalSize[0]
-            ymax = bottom * normalSize[1]
-            xmax = right * normalSize[0]
+            ymin = top * lowresSize[1]
+            xmin = left * lowresSize[0]
+            ymax = bottom * lowresSize[1]
+            xmax = right * lowresSize[0]
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
@@ -293,6 +293,7 @@ async def recognitionLoop(recoResult, ws):
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             frame_with_detections = await InferenceTensorFlow(ws, recoResult, grey, modelPath, outputName, labelPath)
+            print(grey.shape)
             frame_with_detections = cv2.resize(frame_with_detections, lowresSize)
             if frame_with_detections is not None:
                 out.write(frame_with_detections)
