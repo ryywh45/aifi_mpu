@@ -288,7 +288,7 @@ async def recognitionLoop(recoResult, ws):
     frame_size = (lowresSize[0], lowresSize[1])
 
     # 初始化 VideoWriter，確保幀速率設置為 30 FPS
-    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 30.0, frame_size)
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 60.0, frame_size)
 
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
@@ -333,7 +333,7 @@ async def recognitionLoop(recoResult, ws):
 
             # 確保每一幀的處理與錄製時間精確對應，防止加速或延遲
             elapsed_time = time.time() - start_time
-            await asyncio.sleep(max(0, (1 / 30.0) - elapsed_time))  # 確保每秒 30 幀錄製
+            await asyncio.sleep(max(0, (1 / 60.0) - elapsed_time))  # 確保每秒 30 幀錄製
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
