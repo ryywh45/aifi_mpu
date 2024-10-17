@@ -325,7 +325,7 @@ async def recognitionLoop(recoResult, ws):
             frame_with_detections = cv2.resize(frame_with_detections, frame_size)
             current_time = datetime.now()
             formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
-            cv2.putText(formatted_time, f'Time: {formatted_time}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 
+            cv2.putText(frame_with_detections, f'Time: {formatted_time}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 
                         fontScale=0.5, color=(255, 255, 255), thickness=1)
             out.write(frame_with_detections)  # 寫入影像到影片檔案
 
