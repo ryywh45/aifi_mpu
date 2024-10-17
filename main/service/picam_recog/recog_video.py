@@ -301,12 +301,6 @@ async def recognitionLoop(recoResult, ws):
         latest_detection_frame = frame_with_detections  # 存儲辨識結果
 
     try:
-        # 開始初次辨識
-        buffer = picam2.capture_buffer("lores")
-        grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-        rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-        asyncio.create_task(perform_inference(rgb))  # 啟動第一輪辨識
-
         while True:
             start_time = time.time()
 
@@ -330,9 +324,8 @@ async def recognitionLoop(recoResult, ws):
             # 寫入影像到影片
             out.write(frame_with_detections)
 
-            # 啟動下一輪辨識
-            if latest_detection_frame is None:  # 如果之前的辨識結果已經被插入，則開始下一輪
-                asyncio.create_task(perform_inference(rgb))
+            # 不等待之前的辨識結果，直接啟動下一輪辨識
+            asyncio.create_task(perform_inference(rgb))
 
             # 確保錄影幀速率穩定
             elapsed_time = time.time() - start_time
