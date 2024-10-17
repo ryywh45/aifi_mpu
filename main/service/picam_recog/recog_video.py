@@ -272,8 +272,6 @@ async def resultforControl(ws):
             print("Already !")
 
 
-import asyncio
-
 async def recognitionLoop(recoResult, ws):
     global out
     picam2 = Picamera2()
@@ -295,24 +293,16 @@ async def recognitionLoop(recoResult, ws):
         return
 
     latest_detection_frame = None  # 用來存儲辨識結果
-    lock = asyncio.Lock()  # 引入鎖機制來控制辨識任務
 
     # 非同步執行辨識並儲存結果
-    async def perform_inference(rgb_frame):
+    async def perform_inference(rgb_frame, frame_time):
         nonlocal latest_detection_frame
-        print("開始進行辨識...")  # Debug 訊息
+        print(f"開始進行辨識: {frame_time}")  # Debug 訊息
         frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
-        print("辨識完成！")  # Debug 訊息
+        print(f"辨識完成: {frame_time}")  # Debug 訊息
         latest_detection_frame = frame_with_detections  # 存儲辨識結果
 
     try:
-        # 開始初次辨識
-        buffer = picam2.capture_buffer("lores")
-        grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-        rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-        print("啟動第一次辨識...")  # Debug 訊息
-        asyncio.create_task(perform_inference(rgb))  # 啟動第一輪辨識
-
         while True:
             start_time = time.time()
 
@@ -321,30 +311,28 @@ async def recognitionLoop(recoResult, ws):
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
-            # 如果有最新的辨識結果，將其插入當前畫面
-            frame_with_detections = rgb
-            if latest_detection_frame is not None:
-                print("插入辨識結果到影片...")  # Debug 訊息
-                frame_with_detections = latest_detection_frame  # 使用最新的辨識結果
-
             # 調整幀大小並添加時間戳
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+            frame_with_detections = cv2.resize(rgb, frame_size)
             cv2.putText(frame_with_detections, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.5, color=(255, 255, 255), thickness=1)
+
+            # 檢查是否有更新的辨識結果，並將結果插入影片
+            if latest_detection_frame is not None:
+                print(f"插入辨識結果: {current_time}")  # Debug 訊息
+                frame_with_detections = cv2.resize(latest_detection_frame, frame_size)
+                latest_detection_frame = None  # 清除已插入的結果
 
             # 寫入影像到影片
             out.write(frame_with_detections)
 
-            # 啟動下一輪辨識（使用鎖來確保辨識不會重複執行）
-            if not lock.locked():
-                async with lock:  # 確保辨識只在前一次完成後執行
-                    print("啟動新一輪辨識...")  # Debug 訊息
-                    asyncio.create_task(perform_inference(rgb))
+            # 啟動新一輪辨識（非同步，與錄影無關）
+            asyncio.create_task(perform_inference(rgb, current_time))
 
             # 確保錄影幀速率穩定
             elapsed_time = time.time() - start_time
             await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))  # 維持每秒 20 幀
+
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
@@ -353,7 +341,6 @@ async def recognitionLoop(recoResult, ws):
             out.release()
         save_command_history_to_csv()
         print("影片已保存")
-
 
 
 
