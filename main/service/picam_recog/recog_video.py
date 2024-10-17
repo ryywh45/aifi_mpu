@@ -192,7 +192,7 @@ async def resultforControl(ws):
     current_time = datetime.now()
     # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
     formatted_time = current_time
-    coordinates_message = f"X:{Xmin}~{Xmax} Y:{Ymin}~{Ymax}"
+    coordinates_message = f"X:{Xmin:.1f}~{Xmax:.1f} Y:{Ymin:.1f}~{Ymax:.1f}"
     X_steadyzone_min = 280
     X_steadyzone_max = 440
     Y_steadyzone_min = 180
@@ -287,7 +287,7 @@ async def recognitionLoop(recoResult, ws):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用 'XVID' 編碼格式
     frame_size = (lowresSize[0], lowresSize[1])
 
-    # 初始化 VideoWriter
+    # 初始化 VideoWriter，確保幀速率設置為 30 FPS
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 30.0, frame_size)
 
     if not out.isOpened():
@@ -307,6 +307,8 @@ async def recognitionLoop(recoResult, ws):
 
     try:
         while True:
+            start_time = time.time()  # 記錄每一幀的開始時間
+
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
@@ -329,7 +331,9 @@ async def recognitionLoop(recoResult, ws):
                         fontScale=0.5, color=(255, 255, 255), thickness=1)
             out.write(frame_with_detections)  # 寫入影像到影片檔案
 
-            await asyncio.sleep(1 / 30.0)  # 每秒錄製 30 幀
+            # 確保每一幀的處理與錄製時間精確對應，防止加速或延遲
+            elapsed_time = time.time() - start_time
+            await asyncio.sleep(max(0, (1 / 30.0) - elapsed_time))  # 確保每秒 30 幀錄製
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
@@ -338,6 +342,7 @@ async def recognitionLoop(recoResult, ws):
             out.release()  # 確保影片檔案被正確關閉並保存
         save_command_history_to_csv()
         print("影片已保存")
+
 
 
 
