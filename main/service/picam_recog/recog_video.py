@@ -158,7 +158,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         await asyncio.sleep(0.1)
         Nothingnum = 0
 
-    if Detectnum >= 1:
+    if Detectnum >= 2:
         await resultforControl(ws)
         Detectnum = 0
         rectangles = []
@@ -288,7 +288,7 @@ async def recognitionLoop(recoResult, ws):
     frame_size = (lowresSize[0], lowresSize[1])
 
     # 初始化 VideoWriter
-    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
+    out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 30.0, frame_size)
 
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
@@ -325,7 +325,7 @@ async def recognitionLoop(recoResult, ws):
             frame_with_detections = cv2.resize(frame_with_detections, frame_size)
             current_time = datetime.now()
             formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
-            cv2.putText(frame_with_detections, f'Time: {formatted_time}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 
+            cv2.putText(frame_with_detections, formatted_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 
                         fontScale=0.5, color=(255, 255, 255), thickness=1)
             out.write(frame_with_detections)  # 寫入影像到影片檔案
 
