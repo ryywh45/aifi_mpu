@@ -138,9 +138,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 result.label = labels[classId]
                 result.score = score
                 if out is not None:
-                    current_time = datetime.now()
-                    formatted_time = current_time
-                    cv2.putText(image, f'Time: {formatted_time}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
                     cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
                     cv2.putText(image, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2) 
             else:
@@ -195,7 +192,7 @@ async def resultforControl(ws):
     current_time = datetime.now()
     # formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
     formatted_time = current_time
-    coordinates_message = f"X:{Xmin}~{Xmax}；Y:{Ymin}~{Ymax}"
+    coordinates_message = f"X:{Xmin}~{Xmax} Y:{Ymin}~{Ymax}"
     X_steadyzone_min = 280
     X_steadyzone_max = 440
     Y_steadyzone_min = 180
@@ -296,35 +293,42 @@ async def recognitionLoop(recoResult, ws):
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
         return
-    
-    # 設定辨識時間間隔（每 1 秒辨識一次）
-    recognition_interval = 1.0  # 每 1 秒進行一次辨識
+
+    recognition_interval = 1.0  # 每 1 秒辨識一次
     last_recognition_time = time.time()
+
+    # 用來儲存辨識結果的影像幀（異步處理）
+    latest_detection_frame = None
+
+    async def perform_inference(rgb_frame):
+        nonlocal latest_detection_frame
+        frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
+        latest_detection_frame = frame_with_detections
 
     try:
         while True:
-            # 捕捉影像緩衝區
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-
-            # 將灰階影像轉換為彩色影像（BGR格式）
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
-            # 繼續錄影並寫入影片
-            frame_with_detections = rgb  # 預設直接使用捕捉到的影像
-
-            # 檢查是否需要進行辨識（根據時間間隔判斷）
+            # 檢查是否需要進行辨識
             current_time = time.time()
             if current_time - last_recognition_time >= recognition_interval:
                 print("開始辨識...")
-                frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
+                asyncio.create_task(perform_inference(rgb))  # 非同步執行辨識，主迴圈不會被阻塞
                 last_recognition_time = current_time  # 更新辨識時間
+
+            # 檢查是否有更新的辨識結果
+            frame_with_detections = latest_detection_frame if latest_detection_frame is not None else rgb
 
             # 調整影像大小並寫入影片
             frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+            current_time = datetime.now()
+            formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S')
+            cv2.putText(formatted_time, f'Time: {formatted_time}', (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 
+                        fontScale=0.5, color=(255, 255, 255), thickness=1)
             out.write(frame_with_detections)  # 寫入影像到影片檔案
 
-            # 控制影像錄製的頻率（例如每秒 30 幀）
             await asyncio.sleep(1 / 30.0)  # 每秒錄製 30 幀
     except KeyboardInterrupt:
         print("中斷執行...")
