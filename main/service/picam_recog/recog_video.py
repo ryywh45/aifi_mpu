@@ -128,10 +128,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         if score > 0.7:
             Detectnum += 1
             Nothingnum -= 10
-            ymin = top * lowresSize[1]
-            xmin = left * lowresSize[0]
-            ymax = bottom * lowresSize[1]
-            xmax = right * lowresSize[0]
+            ymin = top * normalSize[1]
+            xmin = left * normalSize[0]
+            ymax = bottom * normalSize[1]
+            xmax = right * normalSize[0]
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
@@ -285,7 +285,7 @@ async def recognitionLoop(recoResult, ws):
     picam2.start()
 
     fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用 'XVID' 編碼格式
-    frame_size = (lowresSize[0], lowresSize[1])
+    frame_size = (normalSize[0], normalSize[1])
 
     # 初始化 VideoWriter，確保幀速率設置為 30 FPS
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
