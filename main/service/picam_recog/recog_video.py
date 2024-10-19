@@ -298,19 +298,24 @@ async def recognitionLoop(recoResult, ws):
                 start_time = time.time()
 
                 buffer = picam2.capture_buffer("main")  # Capture from the normal resolution stream
-                height, width = 480, 720  # 調整到符合要求的解析度
-                buffer = buffer[:width * height].reshape((height, width, 3))  # 重新配置 buffer 尺寸
-                rgb = cv2.cvtColor(buffer, cv2.COLOR_YUV2BGR_I420)  # Convert YUV to BGR for normal video
+                height, width = 480, 720  # 正確的影像尺寸
+                yuv_height = height * 3 // 2  # YUV420 的高度是原始高度的 1.5 倍
+                
+                # 正確 reshape YUV420 資料
+                buffer = buffer[:width * yuv_height].reshape((yuv_height, width))
+                
+                # YUV420 to BGR
+                rgb = cv2.cvtColor(buffer, cv2.COLOR_YUV2BGR_I420)
 
-                # Add timestamp to the normal frame
+                # 在影像上加上時間戳
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 cv2.putText(rgb, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
                             fontScale=0.5, color=(255, 255, 255), thickness=1)
 
-                # Write normal video frame
+                # 寫入正常的錄影影像
                 out.write(rgb)
 
-                # Maintain frame rate at 20 fps
+                # 保持影格率在 20 fps
                 elapsed_time = time.time() - start_time
                 await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
 
