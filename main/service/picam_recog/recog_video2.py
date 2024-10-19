@@ -275,7 +275,7 @@ async def resultforControl(ws):
             print("Already !")
 
 
-async def recognitionLoop(recoResult, ws):
+async def recognitionLoop(recoResult, ws): #可以正常錄影但辨識只會執行一次
     global out
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
@@ -287,54 +287,76 @@ async def recognitionLoop(recoResult, ws):
 
     picam2.start()
 
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')  # 使用 'XVID' 編碼格式
-    frame_size = (lowresSize[0], lowresSize[1])
-
-    # 初始化 VideoWriter
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    frame_size = (normalSize[0], normalSize[1])
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
 
     if not out.isOpened():
         print("VideoWriter 無法開啟。")
         return
-    
+
+    latest_detection_frame = None  # 用來存儲辨識結果
+
+    # 非同步執行辨識並儲存結果
+    async def perform_inference(rgb_frame, frame_time):
+        nonlocal latest_detection_frame
+        print("影像開始辨識")
+        frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
+        latest_detection_frame = (frame_with_detections, frame_time)  # 存儲辨識結果與時間
+
     try:
+        # 開始初次辨識
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        buffer = picam2.capture_buffer("lores")
+        grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
+        rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+        asyncio.create_task(perform_inference(rgb, current_time))  # 啟動第一輪辨識
+        print(f"第一次啟動時間:{current_time}")
+
         while True:
-            # 捕捉影像緩衝區
+            start_time = time.time()
+
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-
-            # 將灰階影像轉換為彩色影像（BGR格式）
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-            
-            start_time = time.time()
-            frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb, modelPath, outputName, labelPath)
-            end_time = time.time()
 
-            # 計算模型處理時間
-            processing_time = end_time - start_time
-            print(f"模型辨識時間: {processing_time:.4f} seconds")
+            # 獲取當前幀的時間戳
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"啟動時間:{current_time}")
+            # 檢查是否有更新的辨識結果，並將結果插入
+            frame_with_detections = rgb
+            if latest_detection_frame is not None:
+                detection_frame, detection_time = latest_detection_frame
+                if detection_time == current_time:
+                    frame_with_detections = detection_frame
+                    latest_detection_frame = None  # 清除已插入的結果
 
-            if frame_with_detections is not None:
-                # 調整影像大小並寫入影片
-                frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+            # 調整幀大小並添加時間戳
+            frame_with_detections = cv2.resize(frame_with_detections, frame_size)
+            cv2.putText(frame_with_detections, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5, color=(255, 255, 255), thickness=1)
 
-                # 打印影像尺寸以確認影像是否正確
-                print(f"Frame size: {frame_with_detections.shape}")
+            # 寫入影像到影片
+            out.write(frame_with_detections)
 
-                out.write(frame_with_detections)  # 寫入影像到影片檔案
+            # 檢查辨識是否完成，如果完成則啟動下一輪辨識
+            if latest_detection_frame is None:
+                # 辨識處理完成，抓取當前幀進行下一輪辨識
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                buffer = picam2.capture_buffer("lores")
+                grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
+                rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+                asyncio.create_task(perform_inference(rgb, current_time))  # 啟動新一輪辨識
 
-            # 根據模型處理時間調整等待時間
-            # 如果模型處理時間超過 0.1 秒，則直接等待 1.1 秒
-            if processing_time < 1.1:
-                await asyncio.sleep(1.1 - processing_time)  # 等待直到下次處理的時間間隔為 1.1 秒
-            else:
-                await asyncio.sleep(0.5)  # 如果處理時間超過 1.1 秒，則等 0.1 秒
+            # 確保錄影幀速率穩定
+            elapsed_time = time.time() - start_time
+            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))  # 維持每秒 20 幀
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
         picam2.stop()
         if out is not None:
-            out.release()  # 確保影片檔案被正確關閉並保存
+            out.release()
         save_command_history_to_csv()
         print("影片已保存")
 
