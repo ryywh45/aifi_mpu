@@ -78,7 +78,7 @@ def DrawRectangles(request):
                 print("Invalid rectangle:", rect)
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
-    global rectangles, Detectnum ,Nothingnum, command_history
+    global rectangles, Detectnum ,Nothingnum, command_history,IsSteady
     if label:
         labels = ReadLabelFile(label)
     else:
@@ -152,14 +152,16 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     print(f"Detectnum:{Detectnum}")
     print(f"Nothingnum:{Nothingnum}")
     if Nothingnum >= 29:
-        print("Nothing R2")
-        await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("R"), ord("2"), 0, 0]}).to_json())
-        await asyncio.sleep(0.1)
+        # print("Nothing R2")
+        # await ws.send(WebsocketMsg(NAME, {"toSerial":
+        #     [ord("R"), ord("2"), 0, 0]}).to_json())
+        # await asyncio.sleep(0.1)
         Nothingnum = 0
 
     if Detectnum >= 2:
-        await resultforControl(ws)
+        if(IsSteady == False):
+            await resultforControl(ws)
+            IsSteady == True
         Detectnum = 0
         rectangles = []
     else:
@@ -257,19 +259,6 @@ async def resultforControl(ws):
         else:
             print("Steady Already")
 
-    if Xmax - Xmin > 576 and Ymax - Ymin > 384:  # 座標面積在整個鏡頭的80%以上就微小擺動直走
-        if IsSteady == False:
-            print("3")
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("3"), 0, 0, 0]}).to_json())
-            command_history.append(("3", formatted_time, coordinates_message))
-            await asyncio.sleep(0.1)
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("2"), 0, 0, 0]}).to_json())
-            command_history.append(("2", formatted_time, coordinates_message))
-            IsSteady = True
-        else:
-            print("Already !")
 
 
 async def recognitionLoop(recoResult, ws):
@@ -297,6 +286,7 @@ async def recognitionLoop(recoResult, ws):
     # 非同步執行辨識並儲存結果
     async def perform_inference(rgb_frame, frame_time):
         nonlocal latest_detection_frame
+        print("影像開始辨識")
         frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
         latest_detection_frame = (frame_with_detections, frame_time)  # 存儲辨識結果與時間
 
