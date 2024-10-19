@@ -296,8 +296,8 @@ async def recognitionLoop(recoResult, ws):
         grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
         rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
-        # 等待初次辨識完成
-        await perform_inference(rgb)
+        # 立即啟動初次辨識，不阻塞錄影
+        asyncio.create_task(perform_inference(rgb))
         print(f"第一次啟動時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
         while True:
@@ -311,10 +311,10 @@ async def recognitionLoop(recoResult, ws):
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"啟動時間: {current_time}")
 
-            # 檢查是否有更新的辨識結果，並將結果插入
+            # 使用最新的辨識結果更新影像
             frame_with_detections = rgb
             if latest_detection_frame is not None:
-                # 插入最新的辨識結果
+                # 將最新的辨識結果應用到影像中
                 frame_with_detections = latest_detection_frame
                 latest_detection_frame = None  # 清除已插入的結果
 
@@ -326,9 +326,10 @@ async def recognitionLoop(recoResult, ws):
             # 寫入影像到影片
             out.write(frame_with_detections)
 
-            # 檢查辨識是否完成，如果完成則啟動下一輪辨識
+            # 定期進行辨識，且不會阻塞錄影
             if latest_detection_frame is None:
-                asyncio.create_task(perform_inference(rgb))  # 啟動新一輪辨識
+                # 啟動新一輪辨識（不阻塞錄影）
+                asyncio.create_task(perform_inference(rgb))
 
             # 確保錄影幀速率穩定
             elapsed_time = time.time() - start_time
@@ -341,6 +342,7 @@ async def recognitionLoop(recoResult, ws):
             out.release()
         save_command_history_to_csv()
         print("影片已保存")
+
 
 
 
