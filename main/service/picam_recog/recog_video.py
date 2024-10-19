@@ -298,6 +298,8 @@ async def recognitionLoop(recoResult, ws):
                 start_time = time.time()
 
                 buffer = picam2.capture_buffer("main")  # Capture from the normal resolution stream
+                height, width = 480, 720  # 調整到符合要求的解析度
+                buffer = buffer[:width * height].reshape((height, width, 3))  # 重新配置 buffer 尺寸
                 rgb = cv2.cvtColor(buffer, cv2.COLOR_YUV2BGR_I420)  # Convert YUV to BGR for normal video
 
                 # Add timestamp to the normal frame
