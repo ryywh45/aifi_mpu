@@ -282,6 +282,7 @@ async def recognitionLoop(recoResult, ws):
         return
 
     latest_detection_frame = None  # 用來存儲辨識結果
+    last_recognition_time = 0  # 上一次辨識的時間戳
 
     # 非同步執行辨識並儲存結果
     async def perform_inference(rgb_frame, frame_time):
@@ -291,17 +292,10 @@ async def recognitionLoop(recoResult, ws):
         latest_detection_frame = (frame_with_detections, frame_time)  # 存儲辨識結果與時間
 
     try:
-        # 開始初次辨識
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        buffer = picam2.capture_buffer("lores")
-        grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-        rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-        asyncio.create_task(perform_inference(rgb, current_time))  # 啟動第一輪辨識
-        print(f"啟動時間:{current_time}")
-
         while True:
             start_time = time.time()
 
+            # 取得目前幀
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
@@ -309,11 +303,11 @@ async def recognitionLoop(recoResult, ws):
             # 獲取當前幀的時間戳
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # 檢查是否有更新的辨識結果，並將結果插入
+            # 檢查是否有最新的辨識結果，將結果插入對應的幀
             frame_with_detections = rgb
             if latest_detection_frame is not None:
                 detection_frame, detection_time = latest_detection_frame
-                if detection_time == current_time:
+                if detection_time == current_time:  # 如果結果與幀的時間戳相符
                     frame_with_detections = detection_frame
                     latest_detection_frame = None  # 清除已插入的結果
 
@@ -325,18 +319,16 @@ async def recognitionLoop(recoResult, ws):
             # 寫入影像到影片
             out.write(frame_with_detections)
 
-            # 檢查辨識是否完成，如果完成則啟動下一輪辨識
-            if latest_detection_frame is None:
-                # 辨識處理完成，抓取當前幀進行下一輪辨識
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                buffer = picam2.capture_buffer("lores")
-                grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-                rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+            # 每隔固定時間（例如 1 秒）進行一次辨識
+            if time.time() - last_recognition_time > 1:  # 每 1 秒進行一次辨識
+                last_recognition_time = time.time()
+                # 啟動辨識
                 asyncio.create_task(perform_inference(rgb, current_time))  # 啟動新一輪辨識
 
             # 確保錄影幀速率穩定
             elapsed_time = time.time() - start_time
             await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))  # 維持每秒 20 幀
+
     except KeyboardInterrupt:
         print("中斷執行...")
     finally:
