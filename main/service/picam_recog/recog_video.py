@@ -297,6 +297,7 @@ async def recognitionLoop(recoResult, ws):
         grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
         rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
         asyncio.create_task(perform_inference(rgb, current_time))  # 啟動第一輪辨識
+        print(f"啟動時間:{current_time}")
 
         while True:
             start_time = time.time()
