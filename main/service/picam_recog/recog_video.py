@@ -292,57 +292,62 @@ async def recognitionLoop(recoResult, ws):
         latest_detection_frame = (frame_with_detections, frame_time)  # 存儲辨識結果與時間
 
     try:
-        # 開始初次辨識
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        buffer = picam2.capture_buffer("lores")
-        grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-        rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-        asyncio.create_task(perform_inference(rgb, current_time))  # 啟動第一輪辨識
+        # Normal recording loop - this is now completely independent of detection
+        async def normal_recording_loop():
+            while True:
+                start_time = time.time()
 
+                buffer = picam2.capture_buffer("main")  # Capture from the normal resolution stream
+                rgb = cv2.cvtColor(buffer, cv2.COLOR_YUV2BGR_I420)  # Convert YUV to BGR for normal video
+
+                # Add timestamp to the normal frame
+                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                cv2.putText(rgb, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=0.5, color=(255, 255, 255), thickness=1)
+
+                # Write normal video frame
+                out.write(rgb)
+
+                # Maintain frame rate at 20 fps
+                elapsed_time = time.time() - start_time
+                await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
+
+        # Start the normal recording loop
+        asyncio.create_task(normal_recording_loop())
+
+        # Detection loop
         while True:
             start_time = time.time()
 
-            buffer = picam2.capture_buffer("lores")
-            grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
+            buffer = picam2.capture_buffer("lores")  # Capture from the low-resolution stream for detection
+            grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape(
+                (lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
-            # 獲取當前幀的時間戳
+            # Get the current time for the detection frame
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            # Add timestamp to the normal frame
-            normal_frame = cv2.resize(rgb, frame_size)
-            cv2.putText(normal_frame, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5, color=(255, 255, 255), thickness=1)
-
-            # 檢查是否有更新的辨識結果，並將結果插入
-            frame_with_detections = rgb
+            # Add detection results
             if latest_detection_frame is not None:
                 detection_frame, detection_time = latest_detection_frame
                 if detection_time == current_time:
-                    frame_with_detections = detection_frame
-                    latest_detection_frame = None  # 清除已插入的結果
+                    rgb = detection_frame
+                    latest_detection_frame = None  # Clear the result after it's used
 
             # Add timestamp to the detection frame
-            detection_frame_with_timestamp = cv2.resize(frame_with_detections, frame_size)
-            cv2.putText(detection_frame_with_timestamp, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.putText(rgb, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.5, color=(255, 255, 255), thickness=1)
 
-            # Write the frames to their respective video files
-            out.write(normal_frame)  # Record normal stream
-            out_detection.write(detection_frame_with_timestamp)  # Record detection stream
+            # Write the detection video frame
+            out_detection.write(rgb)
 
-            # 檢查辨識是否完成，如果完成則啟動下一輪辨識
+            # Perform detection asynchronously without blocking the loop
             if latest_detection_frame is None:
-                # 辨識處理完成，抓取當前幀進行下一輪辨識
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                buffer = picam2.capture_buffer("lores")
-                grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-                rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-                asyncio.create_task(perform_inference(rgb, current_time))  # 啟動新一輪辨識
+                asyncio.create_task(perform_inference(rgb, current_time))
 
-            # 確保錄影幀速率穩定
+            # Ensure the loop runs smoothly
             elapsed_time = time.time() - start_time
-            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))  # 維持每秒 20 幀
+            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
 
     except KeyboardInterrupt:
         print("中斷執行...")
