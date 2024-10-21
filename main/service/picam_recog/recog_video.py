@@ -318,38 +318,6 @@ async def recognitionLoop(recoResult, ws):
 
         asyncio.create_task(normal_recording_loop())  # 啟動正常錄影的協程
 
-        while True:
-            start_time = time.time()
-
-            # 進行辨識錄影
-            buffer = picam2.capture_buffer("lores")
-            grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape(
-                (lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-            rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
-
-            # 將辨識結果插入畫面
-            frame_with_detections = rgb
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            if latest_detection_frame is not None:
-                detection_frame, detection_time = latest_detection_frame
-                if detection_time == current_time:
-                    frame_with_detections = detection_frame
-                    latest_detection_frame = None  # 清除已插入的結果
-
-            # 加入時間戳並儲存
-            frame_with_detections = cv2.resize(frame_with_detections, frame_size)
-            cv2.putText(frame_with_detections, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5, color=(255, 255, 255), thickness=1)
-            out_detection.write(frame_with_detections)
-
-            # 如果辨識處理已完成，啟動下一輪辨識
-            if not lock.locked():
-                async with lock:  # 防止同時進行多個辨識任務
-                    asyncio.create_task(perform_inference(rgb, current_time))  # 啟動新一輪辨識
-
-            # 控制幀速率
-            elapsed_time = time.time() - start_time
-            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
 
     except KeyboardInterrupt:
         print("中斷執行...")
