@@ -262,7 +262,7 @@ async def resultforControl(ws):
 
 
 async def recognitionLoop(recoResult, ws):
-    global out, out_detection
+    global out
     picam2 = Picamera2()
     config = picam2.create_preview_configuration(main={"size": normalSize},
                                                  lores={"size": lowresSize, "format": "YUV420"})
@@ -277,10 +277,7 @@ async def recognitionLoop(recoResult, ws):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     frame_size = (normalSize[0], normalSize[1])
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}_normal.avi", fourcc, 20.0, frame_size)
-    
-    if not out.isOpened() or not out_detection.isOpened():
-        print("VideoWriter 無法開啟。")
-        return
+
 
     latest_detection_frame = None  # 用於存儲辨識結果
     lock = asyncio.Lock()  # 用於控制辨識鎖定
@@ -325,8 +322,6 @@ async def recognitionLoop(recoResult, ws):
         picam2.stop()
         if out is not None:
             out.release()
-        if out_detection is not None:
-            out_detection.release()
         save_command_history_to_csv()
         print("影片已保存")
 
