@@ -294,60 +294,55 @@ async def recognitionLoop(recoResult, ws):
         latest_detection_frame = frame_with_detections  
 
     try:
-        # Normal recording loop - this is now completely independent of detection
+        # Normal recording loop
         async def normal_recording_loop():
             while True:
                 start_time = time.time()
 
                 buffer = picam2.capture_buffer("lores")
-                
                 grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
                 rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
-                frame_with_detections = rgb
                 current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                frame_with_detections = cv2.resize(frame_with_detections, frame_size)
-                cv2.putText(frame_with_detections, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+                frame_with_timestamp = cv2.resize(rgb, frame_size)
+                cv2.putText(frame_with_timestamp, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
                             fontScale=0.5, color=(255, 255, 255), thickness=1)
 
-                out.write(frame_with_detections)
+                out.write(frame_with_timestamp)
 
                 elapsed_time = time.time() - start_time
                 await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
 
-        asyncio.create_task(normal_recording_loop())
-
+        asyncio.create_task(normal_recording_loop())  # Run normal recording in a separate task
 
         while True:
             start_time = time.time()
 
-            buffer = picam2.capture_buffer("lores")  # Capture from the low-resolution stream for detection
+            buffer = picam2.capture_buffer("lores")
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
             frame_with_detections = rgb
             if latest_detection_frame is not None:
-                print("插入辨識結果到影片...")  # Debug 訊息
-                frame_with_detections = latest_detection_frame  # 使用最新的辨識結果
+                print("插入辨識結果到影片...")
+                frame_with_detections = latest_detection_frame
 
-            # 調整幀大小並添加時間戳
+            # Adjust frame size and add timestamp
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             frame_with_detections = cv2.resize(frame_with_detections, frame_size)
             cv2.putText(frame_with_detections, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.5, color=(255, 255, 255), thickness=1)
 
-            # 寫入影像到影片
-            out.write(frame_with_detections)
+            out_detection.write(frame_with_detections)
 
-            # 啟動下一輪辨識（使用鎖來確保辨識不會重複執行）
+            # Perform inference if not locked
             if not lock.locked():
-                async with lock:  # 確保辨識只在前一次完成後執行
-                    print("啟動新一輪辨識...")  # Debug 訊息
-                    asyncio.create_task(perform_inference(rgb))
+                async with lock:
+                    print("啟動新一輪辨識...")
+                    await perform_inference(rgb)
 
-            # 確保錄影幀速率穩定
             elapsed_time = time.time() - start_time
-            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))  # 維持每秒 20 幀
+            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
 
     except KeyboardInterrupt:
         print("中斷執行...")
@@ -359,6 +354,7 @@ async def recognitionLoop(recoResult, ws):
             out_detection.release()
         save_command_history_to_csv()
         print("影片已保存")
+
 
 
 
