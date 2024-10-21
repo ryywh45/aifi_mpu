@@ -127,7 +127,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         await asyncio.sleep(0.1)
         Nothingnum = 0
 
-    if Detectnum >= 1:
+    if Detectnum >= 2:
         if(IsSteady == False):
             await resultforControl(ws)
         Detectnum = 0
