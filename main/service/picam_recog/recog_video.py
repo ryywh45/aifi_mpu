@@ -291,28 +291,25 @@ async def recognitionLoop(recoResult, ws):
         print("辨識完成！")
 
     try:
-        # 正常錄影的部分
-        async def normal_recording_loop():
-            while True:
-                start_time = time.time()
+        
+        while True:
+            start_time = time.time()
 
-                buffer = picam2.capture_buffer("lores")
-                grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape(
-                    (lowresSize[1], picam2.stream_configuration("lores")["stride"]))
-                rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
+            buffer = picam2.capture_buffer("lores")
+            grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape(
+                (lowresSize[1], picam2.stream_configuration("lores")["stride"]))
+            rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
 
                 # 加入時間戳並儲存
-                current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                frame = cv2.resize(rgb, frame_size)
-                cv2.putText(frame, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                            fontScale=0.5, color=(255, 255, 255), thickness=1)
-                out.write(frame)
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            frame = cv2.resize(rgb, frame_size)
+            cv2.putText(frame, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.5, color=(255, 255, 255), thickness=1)
+            out.write(frame)
 
                 # 控制幀速率
-                elapsed_time = time.time() - start_time
-                await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
-
-        asyncio.create_task(normal_recording_loop())  # 啟動正常錄影的協程
+            elapsed_time = time.time() - start_time
+            await asyncio.sleep(max(0, (1 / 20.0) - elapsed_time))
 
 
     except KeyboardInterrupt:
