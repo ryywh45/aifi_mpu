@@ -277,8 +277,7 @@ async def recognitionLoop(recoResult, ws):
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     frame_size = (normalSize[0], normalSize[1])
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}_normal.avi", fourcc, 20.0, frame_size)
-    out_detection = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}_detection.avi", fourcc, 20.0, frame_size)
-
+    
     if not out.isOpened() or not out_detection.isOpened():
         print("VideoWriter 無法開啟。")
         return
