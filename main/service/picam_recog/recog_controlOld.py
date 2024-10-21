@@ -160,8 +160,9 @@ async def resultforControl(ws):
     print(f"IsSteady值:{IsSteady}")
     await ws.send(WebsocketMsg(NAME, {"toSerial":
         [ord("R"), ord("2"), 0, 0]}).to_json())
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"開始動作:{current_time}")
+    current_time = datetime.now()
+    formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S') + f".{current_time.microsecond // 1000:03d}"
+    print(f"開始動作:{formatted_time}")
     await asyncio.sleep(0.1)
 
             
@@ -180,8 +181,9 @@ async def recognitionLoop(recoResult, ws):
 
     try:
         while True:
-            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print(f"迴圈開始時間:{current_time}")
+            current_time = datetime.now()
+            formatted_time = current_time.strftime('%Y-%m-%d %H:%M:%S') + f".{current_time.microsecond // 1000:03d}"
+            print(f"迴圈開始時間:{formatted_time}")
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
