@@ -158,7 +158,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if Detectnum >= 2:
         if(IsSteady == False):
             await resultforControl(ws)
-            IsSteady == True
+            IsSteady = True
         Detectnum = 0
         rectangles = []
     else:
@@ -192,6 +192,8 @@ async def resultforControl(ws):
     await ws.send(WebsocketMsg(NAME, {"toSerial":
         [ord("R"), ord("2"), 0, 0]}).to_json())
     command_history.append(("3", formatted_time, coordinates_message))
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"開始動作:{current_time}")
     await asyncio.sleep(0.1)
 
 
@@ -214,14 +216,14 @@ async def recognitionLoop(recoResult, ws):
         print("VideoWriter 無法開啟。")
         return
 
-    latest_detection_frame = None  # 用來存儲辨識結果
+    latest_detection_frame = None  
 
 
     async def perform_inference(rgb_frame, frame_time):
         nonlocal latest_detection_frame
         print("影像辨識")
         frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
-        latest_detection_frame = (frame_with_detections, frame_time)  # 存儲辨識結果與時間
+        latest_detection_frame = (frame_with_detections, frame_time)  
 
     try:
         current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -237,7 +239,7 @@ async def recognitionLoop(recoResult, ws):
             grey = buffer[:picam2.stream_configuration("lores")["stride"] * lowresSize[1]].reshape((lowresSize[1], picam2.stream_configuration("lores")["stride"]))
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            print(f"迴圈開始:{current_time}")
+            print(f"迴圈開始時間:{current_time}")
             frame_with_detections = rgb
             if latest_detection_frame is not None:
                 detection_frame, detection_time = latest_detection_frame
