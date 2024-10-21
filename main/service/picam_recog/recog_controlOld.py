@@ -12,14 +12,19 @@ from pycoral.utils import dataset
 from pycoral.adapters import common
 from pycoral.adapters import classify
 import time
-normalSize = (320, 240)
+from datetime import datetime
+normalSize = (720, 480) 
+# 720*480+0.7延遲 30分鐘後不行 640*480+0.5 50分鐘都正常
 lowresSize = (320, 240)
 
 rectangles = []
 Detectnum = 0
 IsSteady = False
+already_up = False
+already_down = False
+Nothingnum = 0
 NAME = 'picam_recog.py'
-modelPath = "./model/model2_edgetpu.tflite"
+modelPath = "./model/model2.tflite"
 labelPath = "./model/label_map.pbtxt"
 outputName = "output.jpg"
 should_stop = True
@@ -43,7 +48,7 @@ def DrawRectangles(request):
                 print("Invalid rectangle:", rect) 
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
-    global rectangles, Detectnum
+    global rectangles, Detectnum ,Nothingnum
     if label:
         labels = ReadLabelFile(label)
     else:
@@ -52,7 +57,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     start_time = time.time()
     interpreter = tflite.Interpreter(model_path=model, num_threads=4)
     # interpreter = tflite.Interpreter(model_path=model,
-    #     experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
+    # experimental_delegates=[tflite.load_delegate('libedgetpu.so.1')])
     # interpreter = edgetpu.make_interpreter(model)
     interpreter.allocate_tensors()
 
@@ -66,9 +71,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     picture = cv2.resize(rgb, (width, height)) 
-    end_time = time.time()
-    processing_time = end_time - start_time
-    print(f"模型辨識時間: {processing_time:.4f} seconds")
+    
 
     input_data = np.expand_dims(picture, axis=0)
     if floating_model:
@@ -90,8 +93,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         top, left, bottom, right = box
         classId = int(detected_classes[0][i])
         score = detected_scores[0][i]
+        Nothingnum += 1
         if score > 0.7:
             Detectnum += 1
+            Nothingnum -= 10
             ymin = top * normalSize[1]
             xmin = left * normalSize[0]
             ymax = bottom * normalSize[1]
@@ -113,14 +118,25 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             if ymin <= 0: ymin = 0
             if ymax <= 0: ymax = 0
             rectangles.append([xmin, ymin, xmax, ymax])
-    print(Detectnum)
+    print(f"Detectnum:{Detectnum}")
+    print(f"Nothingnum:{Nothingnum}")
+    if Nothingnum >= 29:
+        print("Nothing R2")
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("R"), ord("2"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
+        Nothingnum = 0
 
-    if Detectnum >= 5:
-        await resultforControl(ws)
+    if Detectnum >= 1:
+        if(IsSteady == False):
+            await resultforControl(ws)
         Detectnum = 0
         rectangles = []
     else:
         print("controlFun not implemented")
+    end_time = time.time()
+    processing_time = end_time - start_time
+    print(f"模型辨識時間: {processing_time:.4f} seconds")
     return rgb  
 
 async def resultforControl(ws):
@@ -128,7 +144,8 @@ async def resultforControl(ws):
     Ymin = 0
     Xmax = 0
     Ymax = 0
-    global IsSteady
+    global IsSteady, already_up, already_down, command_history
+    IsSteady = True
     for i in range(len(rectangles)):
         Xmin += rectangles[i][0]
         Ymin += rectangles[i][1]
@@ -139,46 +156,14 @@ async def resultforControl(ws):
         Ymin = Ymin / len(rectangles)
         Xmax = Xmax / len(rectangles)
         Ymax = Ymax / len(rectangles)
-    Xmid = (Xmin + Xmax) / 2
-    Ymid = (Ymin + Ymax) / 2
-    if Xmax-Xmin <= 256: #1536  80%的值都改成變數
-        if Xmid < 160:
-            print("R")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("R"), ord("1"), 0, 0]}).to_json())
-        elif Xmid > 160:
-            print("L")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("L"), ord("1"), 0, 0]}).to_json())
-        else:
-            print("X pixal OK")
-    
-    if Ymax-Ymin <= 192:
-        if Ymid < 120:
-            print("D")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("D"), 0, 0, 0]}).to_json())
-        elif Ymid > 540:
-            print("U")
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("U"), 0, 0, 0]}).to_json())
-        else:
-            print("Y pixal OK")
-        
-    if Xmax-Xmin > 256:
-        if Ymax-Ymin > 192: #座標面積在整個鏡頭的80%以上就直走
-            if IsSteady == False:
-                print("!")
-                await ws.send(WebsocketMsg(NAME, {"toSerial":
-                    [ord("!"), 0, 0, 0]}).to_json())
-                IsSteady = True
-            else:
-                print("Already !")
-    print("already send command!")
+    print("R2")
+    print(f"IsSteady值:{IsSteady}")
+    await ws.send(WebsocketMsg(NAME, {"toSerial":
+        [ord("R"), ord("2"), 0, 0]}).to_json())
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"開始動作:{current_time}")
+    await asyncio.sleep(0.1)
+
             
 
 
@@ -195,10 +180,12 @@ async def recognitionLoop(recoResult, ws):
 
     try:
         while True:
+            current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"迴圈開始時間:{current_time}")
             buffer = picam2.capture_buffer("lores")
             grey = buffer[:stride * lowresSize[1]].reshape((lowresSize[1], stride))
             await InferenceTensorFlow(ws,recoResult, grey, modelPath, outputName, labelPath)
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.8)
     except KeyboardInterrupt:
         print("Exiting...")
     finally:

@@ -186,6 +186,7 @@ async def resultforControl(ws):
         Xmax = Xmax / len(rectangles)
         Ymax = Ymax / len(rectangles)
     print("R2")
+    print(f"IsSteady值:{IsSteady}")
     current_time = datetime.now()
     formatted_time = current_time
     coordinates_message = f"X:{Xmin}~{Xmax}；Y:{Ymin}~{Ymax}"
