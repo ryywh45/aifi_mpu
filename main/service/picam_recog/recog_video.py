@@ -51,7 +51,7 @@ def save_command_history_to_csv(filename=f"{datetime.now().strftime('%Y%m%d_%H%M
                     print(f"Timestamp format error for command '{command}': {timestamp}")
                     continue
             
-            formatted_timestamp = timestamp
+            formatted_timestamp = timestamp.strftime('%H:%M:%S')
             writer.writerow([command, formatted_timestamp, coordinates])
 
     print(f"Command history saved to {filename}")
@@ -146,12 +146,13 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
             rectangles.append([xmin, ymin, xmax, ymax])
     
-    if Nothingnum >= 29 and IsSteady == False:
+    if Nothingnum >= 29:
         print("Nothing R2")
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("2"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
         Nothingnum = 0
+        IsSteady = False
 
     if Detectnum >= 2:
         if(IsSteady == False):
