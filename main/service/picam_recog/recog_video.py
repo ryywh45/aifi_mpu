@@ -163,9 +163,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if Detectnum >= 2:
         Nothingnum = 0
         Detectnum = 0
-        rectangles = []
         if(IsSteady == False):
             await resultforControl(ws)
+        rectangles = []
         
     else:
         print("controlFun not implemented")
