@@ -145,7 +145,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
 
             rectangles.append([xmin, ymin, xmax, ymax])
-    
+    print(f"Nothingnum:{Nothingnum}")
     if Nothingnum >= 29:
         print("Nothing R2")
         current_time = datetime.now().strftime('%H:%M:%S')
