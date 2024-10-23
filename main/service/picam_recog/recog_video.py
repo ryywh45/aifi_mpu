@@ -196,7 +196,7 @@ async def resultforControl(ws):
             return
     last_Xmin, last_Ymin, last_Xmax, last_Ymax = Xmin, Ymin, Xmax, Ymax
     
-    current_time = datetime.now().strftime('%H:%M:%S')
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     coordinates_message = f"X:{Xmin:.1f}~{Xmax:.1f} Y:{Ymin:.1f}~{Ymax:.1f}"
     if Xmid < X_steadyzone_min: 
         print("L")
@@ -270,7 +270,7 @@ async def recognitionLoop(recoResult, ws):
     picam2.post_callback = DrawRectangles
 
     picam2.start()
-    current_time = datetime.now().strftime('%H:%M:%S')
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     coordinates_message = f"x y"
     command_history.append(("!", current_time, coordinates_message))
     await ws.send(WebsocketMsg(NAME, {"toSerial":
