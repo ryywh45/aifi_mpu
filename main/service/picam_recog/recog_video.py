@@ -148,6 +148,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     print(f"Nothingnum:{Nothingnum}")
     if Nothingnum >= 29:
         print("Nothing R2")
+        Nothingnum = 0
+        IsSteady = False
         current_time = datetime.now().strftime('%H:%M:%S')
         coordinates_message = "X Y"
         command_history.append(("NoR2", current_time, coordinates_message))
@@ -156,14 +158,15 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         await asyncio.sleep(0.1)
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("1"), ord("2"), 0, 0]}).to_json())
-        Nothingnum = 0
-        IsSteady = False
+        
 
     if Detectnum >= 2:
-        if(IsSteady == False):
-            await resultforControl(ws)
+        Nothingnum = 0
         Detectnum = 0
         rectangles = []
+        if(IsSteady == False):
+            await resultforControl(ws)
+        
     else:
         print("controlFun not implemented")
     
