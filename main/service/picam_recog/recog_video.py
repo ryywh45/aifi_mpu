@@ -154,10 +154,12 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         coordinates_message = "X Y"
         command_history.append(("NoR2", current_time, coordinates_message))
         await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("R"), ord("2"), 0, 0]}).to_json())
+            [ord("1"), ord("2"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
         await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("1"), ord("2"), 0, 0]}).to_json())
+            [ord("R"), ord("2"), 0, 0]}).to_json())
+        
+        
         
 
     if Detectnum >= 2:
@@ -256,10 +258,12 @@ async def resultforControl(ws):
             print("Steady - 已停止")
             command_history.append(("Stop", current_time, coordinates_message))
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("X"), 0, 0, 0]}).to_json()) #停止
+                [ord("3"), 0, 0, 0]}).to_json()) 
             await asyncio.sleep(0.1)
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("3"), 0, 0, 0]}).to_json()) #切換魚眼顏色
+                [ord("X"), 0, 0, 0]}).to_json()) 
+            
+            
             IsSteady = True
         else:
             print("Steady Already")
