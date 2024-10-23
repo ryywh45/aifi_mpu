@@ -241,12 +241,14 @@ async def resultforControl(ws):
         already_up = False
         already_down = False
         print("Balance")
+        command_history.append(("Balance", current_time, coordinates_message))
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("M"), 0, 0, 0]}).to_json())
 
     if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
         if IsSteady == False:
             print("Steady - 已停止")
+            command_history.append(("Stop", current_time, coordinates_message))
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("X"), 0, 0, 0]}).to_json()) #停止
             await asyncio.sleep(0.1)
@@ -285,7 +287,6 @@ async def recognitionLoop(recoResult, ws):
 
     async def perform_inference(rgb_frame, frame_time):
         nonlocal latest_detection_frame
-        print("影像辨識")
         frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
         latest_detection_frame = (frame_with_detections, frame_time)  
 
@@ -306,8 +307,6 @@ async def recognitionLoop(recoResult, ws):
             print(f"迴圈開始時間:{current_time}")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("1"), ord("0"), 0, 0]}).to_json())
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("!"), 0, 0, 0]}).to_json())
             frame_with_detections = rgb
             if latest_detection_frame is not None:
                 detection_frame, detection_time = latest_detection_frame
