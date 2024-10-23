@@ -148,6 +148,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     
     if Nothingnum >= 29:
         print("Nothing R2")
+        current_time = datetime.now().strftime('%H:%M:%S')
+        coordinates_message = "X Y"
+        command_history.append(("NoR2", current_time, coordinates_message))
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("2"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
