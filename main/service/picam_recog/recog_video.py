@@ -151,6 +151,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         await ws.send(WebsocketMsg(NAME, {"toSerial":
             [ord("R"), ord("2"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("1"), ord("2"), 0, 0]}).to_json())
         Nothingnum = 0
         IsSteady = False
 
