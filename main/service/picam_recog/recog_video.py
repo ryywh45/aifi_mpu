@@ -158,7 +158,6 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if Detectnum >= 2:
         if(IsSteady == False):
             await resultforControl(ws)
-            IsSteady = True
         Detectnum = 0
         rectangles = []
     else:
@@ -186,14 +185,15 @@ async def resultforControl(ws):
         Xmax = Xmax / len(rectangles)
         Ymax = Ymax / len(rectangles)
     print("R2")
+    IsSteady = True
     print(f"IsSteady值:{IsSteady}")
     current_time = datetime.now()
     formatted_time = current_time
-    coordinates_message = f"X:{Xmin}~{Xmax}；Y:{Ymin}~{Ymax}"
+    coordinates_message = f"X:{Xmin:.1f}~{Xmax:.1f} Y:{Ymin:.1f}~{Ymax:.1f}"
     await ws.send(WebsocketMsg(NAME, {"toSerial":
         [ord("R"), ord("2"), 0, 0]}).to_json())
-    command_history.append(("3", formatted_time, coordinates_message))
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    command_history.append(("R2", formatted_time, coordinates_message))
+    current_time = datetime.now().strftime('%H:%M:%S')
     print(f"開始動作:{current_time}")
     await asyncio.sleep(0.1)
 
