@@ -33,7 +33,7 @@ should_stop = True
 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = None  
 command_history = []
-def save_command_history_to_csv(filename='command_history.csv'):
+def save_command_history_to_csv(filename=f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}_command.csv"):
 
     filename = os.path.expanduser(filename)
 
