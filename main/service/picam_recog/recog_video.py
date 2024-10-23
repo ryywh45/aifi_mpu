@@ -197,7 +197,7 @@ async def resultforControl(ws):
     Y_steadyzone_max = 300
 
     if last_Xmin is not None and last_Ymin is not None:
-        if abs(Xmin - last_Xmin) < 5 and abs(Ymin - last_Ymin) < 5 and abs(Xmax - last_Xmax) < 5 and abs(Ymax - last_Ymax) < 5:
+        if abs(Xmin - last_Xmin) < 15 and abs(Ymin - last_Ymin) < 15 and abs(Xmax - last_Xmax) < 15 and abs(Ymax - last_Ymax) < 15:
             print("skip control")
             return
     last_Xmin, last_Ymin, last_Xmax, last_Ymax = Xmin, Ymin, Xmax, Ymax
