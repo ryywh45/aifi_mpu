@@ -149,7 +149,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
             rectangles.append([xmin, ymin, xmax, ymax])
     
-    if Nothingnum >= 29:
+    if Nothingnum >= 29 and IsSteady == False:
         print("Nothing R2")
         current_time = datetime.now().strftime('%H:%M:%S')
         coordinates_message = "X:0 Y:0"
@@ -249,7 +249,7 @@ async def resultforControl(ws):
 
     if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
         if IsSteady == False:
-            print("Steady - No Movement")
+            print("Steady - 已停止")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("X"), 0, 0, 0]}).to_json()) #停止
             await ws.send(WebsocketMsg(NAME, {"toSerial":
@@ -307,7 +307,7 @@ async def recognitionLoop(recoResult, ws):
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"迴圈開始時間:{current_time}")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("3"), ord("0"), 0, 0]}).to_json())
+                [ord("1"), ord("0"), 0, 0]}).to_json())
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("!"), 0, 0, 0]}).to_json())
             frame_with_detections = rgb
