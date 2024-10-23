@@ -252,6 +252,7 @@ async def resultforControl(ws):
             print("Steady - 已停止")
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("X"), 0, 0, 0]}).to_json()) #停止
+            await asyncio.sleep(0.1)
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("3"), 0, 0, 0]}).to_json()) #切換魚眼顏色
             IsSteady = True
