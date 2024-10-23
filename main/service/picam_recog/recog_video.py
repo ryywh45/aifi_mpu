@@ -46,7 +46,7 @@ def save_command_history_to_csv(filename=f"{datetime.now().strftime('%Y%m%d_%H%M
         for command, timestamp, coordinates in command_history:
             if isinstance(timestamp, str):
                 try:
-                    timestamp = datetime.strptime(timestamp, '%Y-%m-%d %H:%M:%S')
+                    timestamp = datetime.strptime(timestamp, '%H:%M:%S')
                 except ValueError:
                     print(f"Timestamp format error for command '{command}': {timestamp}")
                     continue
@@ -196,7 +196,7 @@ async def resultforControl(ws):
             return
     last_Xmin, last_Ymin, last_Xmax, last_Ymax = Xmin, Ymin, Xmax, Ymax
     
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    current_time = datetime.now().strftime('%H:%M:%S')
     coordinates_message = f"X:{Xmin:.1f}~{Xmax:.1f} Y:{Ymin:.1f}~{Ymax:.1f}"
     if Xmid < X_steadyzone_min: 
         print("L")
@@ -270,7 +270,7 @@ async def recognitionLoop(recoResult, ws):
     picam2.post_callback = DrawRectangles
 
     picam2.start()
-    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    current_time = datetime.now().strftime('%H:%M:%S')
     coordinates_message = f"x y"
     command_history.append(("!", current_time, coordinates_message))
     await ws.send(WebsocketMsg(NAME, {"toSerial":
