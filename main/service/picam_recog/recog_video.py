@@ -273,7 +273,13 @@ async def recognitionLoop(recoResult, ws):
     picam2.post_callback = DrawRectangles
 
     picam2.start()
-
+    current_time = datetime.now().strftime('%H:%M:%S')
+    coordinates_message = f"x y"
+    command_history.append(("!", current_time, coordinates_message))
+    await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("1"), ord("0"), 0, 0]}).to_json())
+    await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("!"), ord("0"), 0, 0]}).to_json())
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     frame_size = (normalSize[0], normalSize[1])
     out = cv2.VideoWriter(f"{datetime.now().strftime('%Y%m%d_%H:%M:%S')}.avi", fourcc, 20.0, frame_size)
@@ -305,8 +311,6 @@ async def recognitionLoop(recoResult, ws):
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"迴圈開始時間:{current_time}")
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("1"), ord("0"), 0, 0]}).to_json())
             frame_with_detections = rgb
             if latest_detection_frame is not None:
                 detection_frame, detection_time = latest_detection_frame
