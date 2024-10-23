@@ -23,6 +23,7 @@ Detectnum = 0
 IsSteady = False
 already_up = False
 already_down = False
+last_Xmin, last_Ymin, last_Xmax, last_Ymax = None, None, None, None
 Nothingnum = 0
 NAME = 'picam_recog.py'
 modelPath = "./model/model2.tflite"
@@ -149,10 +150,12 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             rectangles.append([xmin, ymin, xmax, ymax])
     
     if Nothingnum >= 29:
-        # print("Nothing R2")
-        # await ws.send(WebsocketMsg(NAME, {"toSerial":
-        #     [ord("R"), ord("2"), 0, 0]}).to_json())
-        # await asyncio.sleep(0.1)
+        print("Nothing R2")
+        current_time = datetime.now().strftime('%H:%M:%S')
+        command_history.append(("NothingR2", current_time, ""))
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("R"), ord("2"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
         Nothingnum = 0
 
     if Detectnum >= 2:
@@ -173,7 +176,8 @@ async def resultforControl(ws):
     Ymin = 0
     Xmax = 0
     Ymax = 0
-    global IsSteady, already_up, already_down, command_history
+    global IsSteady ,already_up , already_down, command_history
+    global last_Xmin, last_Ymin, last_Xmax, last_Ymax 
     for i in range(len(rectangles)):
         Xmin += rectangles[i][0]
         Ymin += rectangles[i][1]
@@ -184,15 +188,75 @@ async def resultforControl(ws):
         Ymin = Ymin / len(rectangles)
         Xmax = Xmax / len(rectangles)
         Ymax = Ymax / len(rectangles)
-    print("R2")
-    IsSteady = True
-    print(f"IsSteady值:{IsSteady}")
-    current_time = datetime.now()
-    formatted_time = current_time
+    Xmid = (Xmin + Xmax) / 2
+    Ymid = (Ymin + Ymax) / 2
+    X_steadyzone_min = 280
+    X_steadyzone_max = 440
+    Y_steadyzone_min = 180
+    Y_steadyzone_max = 300
+
+    if last_Xmin is not None and last_Ymin is not None:
+        if abs(Xmin - last_Xmin) < 5 and abs(Ymin - last_Ymin) < 5 and abs(Xmax - last_Xmax) < 5 and abs(Ymax - last_Ymax) < 5:
+            print("skip control")
+            return
+    last_Xmin, last_Ymin, last_Xmax, last_Ymax = Xmin, Ymin, Xmax, Ymax
+    
+    current_time = datetime.now().strftime('%H:%M:%S')
     coordinates_message = f"X:{Xmin:.1f}~{Xmax:.1f} Y:{Ymin:.1f}~{Ymax:.1f}"
-    await ws.send(WebsocketMsg(NAME, {"toSerial":
-        [ord("R"), ord("2"), 0, 0]}).to_json())
-    command_history.append(("R2", formatted_time, coordinates_message))
+    if Xmid < X_steadyzone_min: 
+        print("L")
+        IsSteady = False
+        command_history.append(("Left", current_time, coordinates_message))
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("L"), ord("1"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
+    elif Xmid > X_steadyzone_max: 
+        print("R")
+        IsSteady = False
+        command_history.append(("Right", current_time, coordinates_message))
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("R"), ord("1"), 0, 0]}).to_json())
+        await asyncio.sleep(0.1)
+    
+    if Ymid < Y_steadyzone_min: 
+        print("U")
+        command_history.append(("Up", current_time, coordinates_message))
+        if already_up == False:
+            IsSteady = False
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("U"), 0, 0, 0]}).to_json())
+            already_up = True
+        else:
+            print("Already Up")
+            
+    elif Ymid > Y_steadyzone_max:
+        print("D")
+        command_history.append(("Down", current_time, coordinates_message))
+        if already_down == False:
+            IsSteady = False
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("D"), 0, 0, 0]}).to_json())
+            already_down = True
+        else:
+            print("Already Down")
+    else:
+        already_up = False
+        already_down = False
+        print("Balance")
+        await ws.send(WebsocketMsg(NAME, {"toSerial":
+            [ord("M"), 0, 0, 0]}).to_json())
+
+    if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
+        if IsSteady == False:
+            print("Steady - No Movement")
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("X"), 0, 0, 0]}).to_json()) #停止
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("1"), 0, 0, 0]}).to_json()) #切換魚眼顏色
+            IsSteady = True
+        else:
+            print("Steady Already")
+
     current_time = datetime.now().strftime('%H:%M:%S')
     print(f"開始動作:{current_time}")
     await asyncio.sleep(0.1)
@@ -241,6 +305,10 @@ async def recognitionLoop(recoResult, ws):
             rgb = cv2.cvtColor(grey, cv2.COLOR_GRAY2BGR)
             current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             print(f"迴圈開始時間:{current_time}")
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("3"), ord("0"), 0, 0]}).to_json())
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("!"), 0, 0, 0]}).to_json())
             frame_with_detections = rgb
             if latest_detection_frame is not None:
                 detection_frame, detection_time = latest_detection_frame
