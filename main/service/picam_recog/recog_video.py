@@ -146,11 +146,15 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
             rectangles.append([xmin, ymin, xmax, ymax])
     print(f"Nothingnum:{Nothingnum}")
+    current_time = datetime.now().strftime('%H:%M:%S')
+    coordinates_message = f"X:{xmin:.1f}~{xmax:.1f} Y:{ymin:.1f}~{ymax:.1f}"
+    command_history.append(("Data", current_time, coordinates_message))
+    
+
     if Nothingnum >= 29:
         print("Nothing R2")
         Nothingnum = 0
         IsSteady = False
-        current_time = datetime.now().strftime('%H:%M:%S')
         coordinates_message = "X Y"
         command_history.append(("NoR2", current_time, coordinates_message))
         await ws.send(WebsocketMsg(NAME, {"toSerial":
