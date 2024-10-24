@@ -157,7 +157,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             [ord("1"), ord("2"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
         await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("R"), ord("2"), 0, 0]}).to_json())
+            [ord("R"), ord("1"), 0, 0]}).to_json())
         
         
         
@@ -284,10 +284,11 @@ async def recognitionLoop(recoResult, ws):
 
     picam2.start()
     current_time = datetime.now().strftime('%H:%M:%S')
-    coordinates_message = f"x y"
+    coordinates_message = f"begin"
     command_history.append(("!", current_time, coordinates_message))
     await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("1"), ord("0"), 0, 0]}).to_json())
+    await asyncio.sleep(0.1)
     await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("!"), ord("0"), 0, 0]}).to_json())
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -331,7 +332,7 @@ async def recognitionLoop(recoResult, ws):
 
             frame_with_detections = cv2.resize(frame_with_detections, frame_size)
             cv2.putText(frame_with_detections, current_time, (10, 20), cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.5, color=(255, 255, 255), thickness=1)
+                        fontScale=0.5, color=(255, 165, 0), thickness=1)
 
             out.write(frame_with_detections)
 
