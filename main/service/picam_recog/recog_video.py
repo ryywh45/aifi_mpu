@@ -166,7 +166,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         
         
 
-    if Detectnum >= 2:
+    if Detectnum >= 1:
         Nothingnum = 0
         Detectnum = 0
         if(IsSteady == False):
