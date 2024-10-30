@@ -23,6 +23,7 @@ Detectnum = 0
 IsSteady = False
 already_up = False
 already_down = False
+Steadyflag = False
 last_Xmin, last_Ymin, last_Xmax, last_Ymax = None, None, None, None
 Nothingnum = 0
 NAME = 'picam_recog.py'
@@ -123,8 +124,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         score = detected_scores[0][i]
         Nothingnum += 1
         if score > 0.7:
-            Detectnum += 1
-            Nothingnum -= 10
+            # Detectnum += 1
+            # Nothingnum -= 10
             ymin = top * normalSize[1]
             xmin = left * normalSize[0]
             ymax = bottom * normalSize[1]
@@ -134,6 +135,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 print(f"  Label: {labels[classId]}, Score = {score}")
                 result.label = labels[classId]
                 result.score = score
+                if(IsSteady == False):
+                    rectangles.append([xmin, ymin, xmax, ymax])
+                    await resultforControl(ws)
                 if out is not None:
                     cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
                     cv2.putText(image, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2) 
@@ -144,37 +148,37 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
             result.xmin, result.ymin = f"{xmin:.1f}", f"{ymin:.1f}"
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
 
-            rectangles.append([xmin, ymin, xmax, ymax])
+
     print(f"Nothingnum:{Nothingnum}")
     current_time = datetime.now().strftime('%H:%M:%S')
     coordinates_message = f"X:{xmin:.1f}~{xmax:.1f} Y:{ymin:.1f}~{ymax:.1f}"
     command_history.append(("Data", current_time, coordinates_message))
     
 
-    if Nothingnum >= 29:
-        print("Nothing R2")
-        Nothingnum = 0
-        IsSteady = False
-        coordinates_message = "X Y"
-        command_history.append(("NoR2", current_time, coordinates_message))
-        await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("1"), ord("2"), 0, 0]}).to_json())
-        await asyncio.sleep(0.1)
-        await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("R"), ord("1"), 0, 0]}).to_json())
+    # if Nothingnum >= 29:
+    #     print("Nothing R2")
+    #     Nothingnum = 0
+    #     IsSteady = False
+    #     coordinates_message = "X Y"
+    #     command_history.append(("NoR2", current_time, coordinates_message))
+    #     await ws.send(WebsocketMsg(NAME, {"toSerial":
+    #         [ord("1"), ord("2"), 0, 0]}).to_json())
+    #     await asyncio.sleep(0.1)
+    #     await ws.send(WebsocketMsg(NAME, {"toSerial":
+    #         [ord("R"), ord("1"), 0, 0]}).to_json())
         
         
         
 
-    if Detectnum >= 1:
-        Nothingnum = 0
-        Detectnum = 0
-        if(IsSteady == False):
-            await resultforControl(ws)
-        rectangles = []
+    # if Detectnum >= 1:
+    #     Nothingnum = 0
+    #     Detectnum = 0
+    #     if(IsSteady == False):
+    #         await resultforControl(ws)
+    #     rectangles = []
         
-    else:
-        print("controlFun not implemented")
+    # else:
+    #     print("controlFun not implemented")
     
     end_time = time.time()
     processing_time = end_time - start_time
@@ -186,7 +190,7 @@ async def resultforControl(ws):
     Ymin = 0
     Xmax = 0
     Ymax = 0
-    global IsSteady ,already_up , already_down, command_history
+    global IsSteady ,already_up , already_down, command_history, rectangles
     global last_Xmin, last_Ymin, last_Xmax, last_Ymax 
     for i in range(len(rectangles)):
         Xmin += rectangles[i][0]
@@ -209,7 +213,8 @@ async def resultforControl(ws):
         if abs(Xmin - last_Xmin) < 15 and abs(Ymin - last_Ymin) < 15 and abs(Xmax - last_Xmax) < 15 and abs(Ymax - last_Ymax) < 15:
             print("skip control")
             return
-    last_Xmin, last_Ymin, last_Xmax, last_Ymax = Xmin, Ymin, Xmax, Ymax
+    last_Xmid = (last_Xmin + last_Xmax) / 2
+    last_Ymid = (last_Ymin + last_Ymax) / 2
     
     current_time = datetime.now().strftime('%H:%M:%S')
     coordinates_message = f"X:{Xmin:.1f}~{Xmax:.1f} Y:{Ymin:.1f}~{Ymax:.1f}"
@@ -228,36 +233,36 @@ async def resultforControl(ws):
             [ord("R"), ord("1"), 0, 0]}).to_json())
         await asyncio.sleep(0.1)
     
-    if Ymid < Y_steadyzone_min: 
-        print("U")
-        command_history.append(("Up", current_time, coordinates_message))
-        if already_up == False:
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("U"), 0, 0, 0]}).to_json())
-            already_up = True
-        else:
-            print("Already Up")
+    # if Ymid < Y_steadyzone_min: 
+    #     print("U")
+    #     command_history.append(("Up", current_time, coordinates_message))
+    #     if already_up == False:
+    #         IsSteady = False
+    #         await ws.send(WebsocketMsg(NAME, {"toSerial":
+    #             [ord("U"), 0, 0, 0]}).to_json())
+    #         already_up = True
+    #     else:
+    #         print("Already Up")
             
-    elif Ymid > Y_steadyzone_max:
-        print("D")
-        command_history.append(("Down", current_time, coordinates_message))
-        if already_down == False:
-            IsSteady = False
-            await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("D"), 0, 0, 0]}).to_json())
-            already_down = True
-        else:
-            print("Already Down")
-    else:
-        already_up = False
-        already_down = False
-        print("Balance")
-        command_history.append(("Balance", current_time, coordinates_message))
-        await ws.send(WebsocketMsg(NAME, {"toSerial":
-            [ord("M"), 0, 0, 0]}).to_json())
+    # elif Ymid > Y_steadyzone_max:
+    #     print("D")
+    #     command_history.append(("Down", current_time, coordinates_message))
+    #     if already_down == False:
+    #         IsSteady = False
+    #         await ws.send(WebsocketMsg(NAME, {"toSerial":
+    #             [ord("D"), 0, 0, 0]}).to_json())
+    #         already_down = True
+    #     else:
+    #         print("Already Down")
+    # else:
+    #     already_up = False
+    #     already_down = False
+    #     print("Balance")
+    #     command_history.append(("Balance", current_time, coordinates_message))
+    #     await ws.send(WebsocketMsg(NAME, {"toSerial":
+    #         [ord("M"), 0, 0, 0]}).to_json())
 
-    if X_steadyzone_min <= Xmid <= X_steadyzone_max and Y_steadyzone_min <= Ymid <= Y_steadyzone_max:
+    if X_steadyzone_min <= (last_Xmid+Xmid)/2 <= X_steadyzone_max and Y_steadyzone_min <= (last_Ymid+Ymid)/2 <= Y_steadyzone_max:
         if IsSteady == False:
             print("Steady - 已停止")
             command_history.append(("Stop", current_time, coordinates_message))
@@ -267,11 +272,12 @@ async def resultforControl(ws):
             await ws.send(WebsocketMsg(NAME, {"toSerial":
                 [ord("X"), 0, 0, 0]}).to_json()) 
             
-            
             IsSteady = True
         else:
             print("Steady Already")
-
+            
+    last_Xmin, last_Ymin, last_Xmax, last_Ymax = Xmin, Ymin, Xmax, Ymax
+    rectangles = []
     current_time = datetime.now().strftime('%H:%M:%S')
     print(f"開始動作:{current_time}")
     await asyncio.sleep(0.1)
