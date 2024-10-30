@@ -125,7 +125,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
         Nothingnum += 1
         if score > 0.7:
             # Detectnum += 1
-            # Nothingnum -= 10
+            Nothingnum = 0
             ymin = top * normalSize[1]
             xmin = left * normalSize[0]
             ymax = bottom * normalSize[1]
@@ -133,28 +133,28 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
+                print(f"  Coordinates in pixels: xmin = {xmin:.1f}, ymin = {ymin:.1f}, xmax = {xmax:.1f}, ymax = {ymax:.1f}")
                 result.label = labels[classId]
                 result.score = score
-                if(IsSteady == False):
-                    rectangles.append([xmin, ymin, xmax, ymax])
-                    await resultforControl(ws)
+                rectangles.append([xmin, ymin, xmax, ymax])
+                current_time = datetime.now().strftime('%H:%M:%S')
+                coordinates_message = f"X:{xmin:.1f}~{xmax:.1f} Y:{ymin:.1f}~{ymax:.1f}"
+                command_history.append((f"Data{i}", current_time, coordinates_message))
                 if out is not None:
                     cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
                     cv2.putText(image, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2) 
             else:
                 print(f"  Score = {score}")
                 result.score = score
-            print(f"  Coordinates in pixels: xmin = {xmin:.1f}, ymin = {ymin:.1f}, xmax = {xmax:.1f}, ymax = {ymax:.1f}")
             result.xmin, result.ymin = f"{xmin:.1f}", f"{ymin:.1f}"
             result.xmax, result.ymax = f"{xmax:.1f}", f"{ymax:.1f}"
 
 
     print(f"Nothingnum:{Nothingnum}")
-    current_time = datetime.now().strftime('%H:%M:%S')
-    coordinates_message = f"X:{xmin:.1f}~{xmax:.1f} Y:{ymin:.1f}~{ymax:.1f}"
-    command_history.append(("Data", current_time, coordinates_message))
     
-
+    
+    if(IsSteady == False):
+        await resultforControl(ws)
     # if Nothingnum >= 29:
     #     print("Nothing R2")
     #     Nothingnum = 0
