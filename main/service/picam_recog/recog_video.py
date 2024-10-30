@@ -270,9 +270,16 @@ async def resultforControl(ws):
                 [ord("3"), 0, 0, 0]}).to_json()) 
             await asyncio.sleep(0.1)
             await ws.send(WebsocketMsg(NAME, {"toSerial":
-                [ord("X"), 0, 0, 0]}).to_json()) 
-            
+                [ord("X"), 0, 0, 0]}).to_json())
             IsSteady = True
+            
+            await asyncio.sleep(0.5)
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                [ord("1"), ord("0"), 0, 0]}).to_json())
+            await asyncio.sleep(0.1)
+            await ws.send(WebsocketMsg(NAME, {"toSerial":
+                        [ord("!"), ord("0"), 0, 0]}).to_json())
+            IsSteady = False 
         else:
             print("Steady Already")
             
