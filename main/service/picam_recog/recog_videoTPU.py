@@ -124,6 +124,7 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
         score = detection.score
         classId = detection.id
         Nothingnum += 1
+        print(f"原始值:{xmin, ymin, xmax, ymax}")
         if score > 0.7:
             # Detectnum += 1
             Nothingnum = 0
