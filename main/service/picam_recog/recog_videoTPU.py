@@ -38,6 +38,9 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = None  
 command_history = []
 
+interpreter = make_interpreter(model)
+interpreter.allocate_tensors()
+
 def save_command_history_to_csv(filename=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_command.csv"):
     filename = os.path.expanduser(filename)
 
@@ -79,18 +82,17 @@ def DrawRectangles(request):
                 print("Invalid rectangle:", rect)
 
 async def InferenceTensorFlow(ws, result, image, model, output, label=None):
-    global rectangles, Detectnum ,Nothingnum, command_history,IsSteady
+    global rectangles, Detectnum ,Nothingnum, command_history,IsSteady,interpreter
     if label:
         labels = ReadLabelFile(label)
     else:
         labels = None
     
     start_time = time.time()
-    interpreter = make_interpreter(model)
-    interpreter.allocate_tensors()
+    
 
     width, height = common.input_size(interpreter)
-    output_details = interpreter.get_output_details()
+    # output_details = interpreter.get_output_details()
     floating_model = True
 
     # 檢查影像通道數，確保只有一個通道時才進行灰階轉換
@@ -107,7 +109,8 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     common.set_input(interpreter, input_data)
     interpreter.invoke()
-
+    end_time = time.time()
+    processing_time = end_time - start_time
     # detected_boxes = interpreter.get_tensor(output_details[1]['index'])
     # detected_classes = interpreter.get_tensor(output_details[3]['index'])
     # detected_scores = interpreter.get_tensor(output_details[0]['index'])
