@@ -180,9 +180,7 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
         
     # else:
     #     print("controlFun not implemented")
-    
-    end_time = time.time()
-    processing_time = end_time - start_time
+
     print(f"模型辨識時間: {processing_time:.4f} seconds")
     return image
 
