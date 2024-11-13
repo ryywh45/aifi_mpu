@@ -94,8 +94,8 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
         labels = None
     
     start_time = time.time()
-    height, width = input_details[0]['shape'][1:3]
-
+    height = input_details[0]['shape'][1]
+    width = input_details[0]['shape'][2]
     floating_model = True
 
     # 檢查影像通道數，確保只有一個通道時才進行灰階轉換
@@ -107,7 +107,8 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
     picture = cv2.resize(rgb, (width, height)) 
 
     input_data = np.expand_dims(picture, axis=0)
-    input_data = (np.float32(input_data) - 127.5) / 127.5
+    if floating_model:
+        input_data = (np.float32(input_data) - 127.5) / 127.5
 
     start_time = time.time()
 
@@ -122,6 +123,7 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
     detected_classes = interpreter.get_tensor(output_details[3]['index'])
     detected_scores = interpreter.get_tensor(output_details[0]['index'])
     num_boxes = interpreter.get_tensor(output_details[2]['index'])
+
     num_boxes = int(num_boxes[0])
     
     for i in range(num_boxes):
