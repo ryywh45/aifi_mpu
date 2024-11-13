@@ -11,6 +11,7 @@ from communication.message import ClientToServer as WebsocketMsg
 from pycoral.adapters import common
 from pycoral.utils.edgetpu import make_interpreter
 from pycoral.adapters import classify
+from pycoral.adapters import detect
 import time
 import csv
 from datetime import datetime
@@ -88,13 +89,9 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     interpreter = make_interpreter(model)
     interpreter.allocate_tensors()
 
-    input_details = interpreter.get_input_details()
+    width, height = common.input_size(interpreter)
     output_details = interpreter.get_output_details()
-    height = input_details[0]['shape'][1]
-    width = input_details[0]['shape'][2]
-    floating_model = False
-    if input_details[0]['dtype'] == np.float32:
-        floating_model = True
+    floating_model = True
 
     # 檢查影像通道數，確保只有一個通道時才進行灰階轉換
     if len(image.shape) == 2:  # 如果是灰階影像
@@ -108,29 +105,29 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     if floating_model:
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
-    interpreter.set_tensor(input_details[0]['index'], input_data)
+    common.set_input(interpreter, input_data)
     interpreter.invoke()
 
-    detected_boxes = interpreter.get_tensor(output_details[1]['index'])
-    detected_classes = interpreter.get_tensor(output_details[3]['index'])
-    detected_scores = interpreter.get_tensor(output_details[0]['index'])
-    num_boxes = interpreter.get_tensor(output_details[2]['index'])
+    # detected_boxes = interpreter.get_tensor(output_details[1]['index'])
+    # detected_classes = interpreter.get_tensor(output_details[3]['index'])
+    # detected_scores = interpreter.get_tensor(output_details[0]['index'])
+    # num_boxes = interpreter.get_tensor(output_details[2]['index'])
 
-    num_boxes = int(num_boxes[0])
-    
-    for i in range(num_boxes):
-        box = detected_boxes[0][i]
-        top, left, bottom, right = box
-        classId = int(detected_classes[0][i])
-        score = detected_scores[0][i]
+    # num_boxes = int(num_boxes[0])
+    detections = detect.get_objects(interpreter, score_threshold=0.5)
+    for detection in detections:
+        bbox = detection.bbox
+        xmin, ymin, xmax, ymax = bbox.xmin, bbox.ymin, bbox.xmax, bbox.ymax
+        score = detection.score
+        classId = detection.id
         Nothingnum += 1
         if score > 0.7:
             # Detectnum += 1
             Nothingnum = 0
-            ymin = top * normalSize[1]
-            xmin = left * normalSize[0]
-            ymax = bottom * normalSize[1]
-            xmax = right * normalSize[0]
+            ymin = ymin * normalSize[1]
+            xmin = xmin * normalSize[0]
+            ymax = ymax * normalSize[1]
+            xmax = xmax * normalSize[0]
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
