@@ -109,6 +109,10 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
 
     interpreter.set_tensor(input_details[0]['index'], input_data)
     interpreter.invoke()
+    
+    end_time = time.time()
+    processing_time = end_time - start_time
+
 
     detected_boxes = interpreter.get_tensor(output_details[1]['index'])
     detected_classes = interpreter.get_tensor(output_details[3]['index'])
@@ -180,8 +184,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
     # else:
     #     print("controlFun not implemented")
     
-    end_time = time.time()
-    processing_time = end_time - start_time
+    
     print(f"模型辨識時間: {processing_time:.4f} seconds")
     return image
 

@@ -128,10 +128,10 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
         if score > 0.7:
             # Detectnum += 1
             Nothingnum = 0
-            ymin = ymin * normalSize[1]
-            xmin = xmin * normalSize[0]
-            ymax = ymax * normalSize[1]
-            xmax = xmax * normalSize[0]
+            # ymin = ymin * normalSize[1]
+            # xmin = xmin * normalSize[0]
+            # ymax = ymax * normalSize[1]
+            # xmax = xmax * normalSize[0]
 
             if labels:
                 print(f"  Label: {labels[classId]}, Score = {score}")
