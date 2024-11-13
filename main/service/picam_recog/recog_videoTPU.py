@@ -137,7 +137,7 @@ async def InferenceTensorFlow(ws, result, image, model, output, label=None):
                 rectangles.append([xmin, ymin, xmax, ymax])
                 current_time = datetime.now().strftime('%H:%M:%S')
                 coordinates_message = f"X:{xmin:.1f}~{xmax:.1f} Y:{ymin:.1f}~{ymax:.1f}"
-                command_history.append((f"Data{i}", current_time, coordinates_message))
+                command_history.append((f"Data", current_time, coordinates_message))
                 if out is not None:
                     cv2.rectangle(image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0, 255, 0), 2)
                     cv2.putText(image, f"{labels[classId]}: {score:.2f}", (int(xmin), int(ymin)-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2) 
