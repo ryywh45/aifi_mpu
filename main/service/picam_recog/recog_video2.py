@@ -111,7 +111,7 @@ async def InferenceTensorFlow(ws, result, image, output, label=None):
         input_data = (np.float32(input_data) - 127.5) / 127.5
 
     start_time = time.time()
-    
+
     interpreter.set_tensor(input_details[0]['index'], input_data)
     interpreter.invoke()
     
@@ -330,7 +330,7 @@ async def recognitionLoop(recoResult, ws):
 
     async def perform_inference(rgb_frame, frame_time):
         nonlocal latest_detection_frame
-        frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
+        frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, outputName, labelPath)
         latest_detection_frame = (frame_with_detections, frame_time)  
 
     try:
