@@ -38,7 +38,7 @@ fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 out = None  
 command_history = []
 
-interpreter = make_interpreter(model)
+interpreter = make_interpreter(modelPath)
 interpreter.allocate_tensors()
 
 def save_command_history_to_csv(filename=f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_command.csv"):
@@ -81,7 +81,7 @@ def DrawRectangles(request):
             else:
                 print("Invalid rectangle:", rect)
 
-async def InferenceTensorFlow(ws, result, image, model, output, label=None):
+async def InferenceTensorFlow(ws, result, image, output, label=None):
     global rectangles, Detectnum ,Nothingnum, command_history,IsSteady,interpreter
     if label:
         labels = ReadLabelFile(label)
@@ -322,7 +322,7 @@ async def recognitionLoop(recoResult, ws):
 
     async def perform_inference(rgb_frame, frame_time):
         nonlocal latest_detection_frame
-        frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, modelPath, outputName, labelPath)
+        frame_with_detections = await InferenceTensorFlow(ws, recoResult, rgb_frame, outputName, labelPath)
         latest_detection_frame = (frame_with_detections, frame_time)  
 
     try:
